@@ -1,3 +1,20 @@
+
+
+# Ignore:
+
+*.*~
+*.pyc
+
+# Eclipse:
+.metadata
+.settings
+**/.project
+**/.pydevproject
+
+
+
+# GitHub - std:
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
