@@ -9,7 +9,7 @@ This is the source code repository for the CloudedBats recording unit.
 - Sound detection algorithm to avoid empty files. Configurable buffer sizes before and after detected sound.
 - GPS support.
 - Scheduler for start and stop related to timestamps, sunset, dawn, etc. calculated from GPS time and position.
-- Manually controlled via switches or wireless computer mouse.
+- Manually controlled via switches or wireless computer mouse (for remote control).
 - Highly configurable via text files for standalone use.
 - Configurable via CloudedBats web server (under development).
 - Can receive commands and report results to a CloudedBats web server when connected to internet (under development).
@@ -22,7 +22,7 @@ This is the source code repository for the CloudedBats recording unit.
 - The software is developed on top of modern open source code libraries and frameworks.
 - Inexpensive hardware can be used. You need an ultrasonic microphone, a Raspberry Pi computer (35 € + VAT) and some common USB devices for storage, GPS, etc. 
 - Different options for storing wave files are available. Both USB memory and portable USB hard disks can be used.
-- If the network is setup properly file transfer can be done via the nternet. For example, by using SFTP with FileZilla.
+- If the network is setup properly file transfer can be done via the Internet. For example, by using SFTP with FileZilla.
 - The Raspberry Pi computer offers many options for enhancements and software developers can easily build other types of systems by using parts of the CloudedBats software. An example is the infrared camera module NoIR that can be used for rooster monitoring and visual species identification.
 
 ### Drawbacks
@@ -46,7 +46,7 @@ Hardware parts:
 
 - ...
 
-The CludedBats software:
+The CloudedBats software:
 
 - ...
 
