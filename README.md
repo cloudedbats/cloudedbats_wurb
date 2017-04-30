@@ -18,15 +18,37 @@ This is the source code repository for the CloudedBats recording unit.
 
 ### Other characteristics
 
-- The software is developed as open source code. Free to use.
-- Is developed on top of modern open source code libraries and frameworks.
-- Inexpensive hardware can be used.
-- Storage...
+- The CloudedBats software is developed as open source software. Free to use.
+- The software is developed on top of modern open source code libraries and frameworks.
+- Inexpensive hardware can be used. You need an ultrasonic microphone, a Raspberry Pi computer (35 € + VAT) and some common USB devices for storage, GPS, etc. 
+- Different options for storing wave files are available. Both USB memory and portable USB hard disks can be used.
+- If the network is setup properly file transfer can be done via the nternet. For example, by using SFTP with FileZilla.
+- The Raspberry Pi computer offers many options for enhancements and software developers can easily build other types of systems by using parts of the CloudedBats software. An example is the infrared camera module NoIR that can be used for rooster monitoring and visual species identification.
+
+### Drawbacks
+
+- Higher power consumption compared to other passive monitoring systems.
+- You must put together the system yourself and find a suitable plastic food box if used outdoors.
+- I can only provide limited support. However, most software developers using Linux / Python should easily understand the code and system setup.
+
+
 
 ### The ultrasonic microphone
 
 The quality of the recordings is entirely determined by the quality of the microphone. When it comes to automatic analysis where recordings are to be compared to reference recordings, it is important that the microphones have comparable characteristics.
 
+to be continued...
 
+
+### How to build your own WURB
+
+Hardware parts:
+
+- ...
+
+The CludedBats software:
+
+- ...
 
 to be continued...
+
