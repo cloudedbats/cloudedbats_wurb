@@ -34,8 +34,8 @@ class ControlRaspberryPiByGpio(object):
         self._logger.info('')
         #
         if not gpio_available:
-            self._logger.error('RPi GPIO control: GPIO not available.')
-            self._logger.error('RPi GPIO control: Terminated.')
+            self._logger.warning('RPi GPIO control: GPIO not available.')
+            self._logger.warning('RPi GPIO control: Terminated.')
             return
         # GPIO pin numbers 1-40.
         self._gpio_pin_low_power = 36 # Also called GPIO 16
@@ -144,11 +144,11 @@ class ControlRaspberryPiByGpio(object):
         log = logging.getLogger('RaspberryPiControl')
         log.setLevel(logging.INFO)
         # Define rotation log files.
-        log_file_name = 'raspberry_log.txt'
+        log_file_name = '../raspberry_pi_gpio_control_log.txt'
         dir_path = os.path.dirname(os.path.abspath(__file__))
         log_handler = logging.handlers.RotatingFileHandler(os.path.join(dir_path, log_file_name),
                                                            maxBytes = 128*1024,
-                                                           backupCount = 10)
+                                                           backupCount = 4)
         log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
         log_handler.setLevel(logging.DEBUG)
         log.addHandler(log_handler)

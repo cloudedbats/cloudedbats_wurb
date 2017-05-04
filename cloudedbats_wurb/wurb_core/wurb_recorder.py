@@ -10,7 +10,6 @@ import math
 import time
 import wave
 import scipy.signal
-import struct
 import pyaudio
 import logging
 import wurb_core
@@ -25,27 +24,27 @@ class SoundSource(wurb_core.SoundSourceBase):
         #
         super(SoundSource, self).__init__()
         
+    def source_exec(self):
+        """ Called from base class. """
+ 
         # From settings. Defaults for Pettersson M500-384.
-        self._in_sampling_rate_hz = int(self._settings.get_value('aaa', '384000')) # in_sampling_rate_hz
-        self._in_adc_resolution_bits = int(self._settings.get_value('aaa', '16')) # in_adc_resolution_bits
+        self._in_sampling_rate_hz = int(self._settings.get_value('recorder_in_sampling', '384000')) # in_sampling_rate_hz
+        self._in_adc_resolution_bits = int(self._settings.get_value('recorder_in_adc_resolution_bits', '16')) # in_adc_resolution_bits
         self._in_width = int(self._in_adc_resolution_bits / 8) 
-        self._in_channels = int(self._settings.get_value('aaa', '1')) # in_channels
+        self._in_channels = int(self._settings.get_value('recorde_in_channels', '1')) # in_channels
         # Sound card.
-        in_device_name = self._settings.get_value('aaa', 'Pettersson') # 
-        in_device_index = self._settings.get_value('aaa', 0) # Default: First recognized sound card.
+        in_device_name = self._settings.get_value('recorder_in_device_name', 'Pettersson')
+        in_device_index = self._settings.get_value('recorder_in_device_index', 0) # Default=First recognized sound card.
         if in_device_name:
             self._in_device_index = self.get_device_index(in_device_name)
         else:
             self._in_device_index = in_device_index
-        
-    def source_exec(self):
-        """ Called from base class. """
+        #
         self._active = True
         #
-        buffer_size = 1024 * 64 # 2**16
-#         buffer_size = 1024 * 16 # TEST.
-        self._logger.info('Sound recorder: Buffer size: ' + str(buffer_size))
-                
+        buffer_size = self._settings.get_value('recorder_in_buffer_size', 1024 * 64) # 2**16
+        self._logger.info('Recorder: Buffer size: ' + str(buffer_size))
+ 
         try:
             self._pyaudio = pyaudio.PyAudio()
             self._stream_active = True
@@ -63,19 +62,19 @@ class SoundSource(wurb_core.SoundSourceBase):
             )
         except Exception as e:
             self._stream = None
-            self._logger.error('Sound recorder: Failed to create stream: ' + str(e))
+            self._logger.error('Recorder: Failed to create stream: ' + str(e))
             # Report to state machine.
             self._callback_function('rec_source_error')
             return
         # Main source loop.
         data = self._stream.read(buffer_size) #, exception_on_overflow=False)
         while self._active and data:
-#             raw_data  = np.fromstring(data, dtype=np.int16) # To ndarray.
-#             self.push_item(raw_data)
+#                 raw_data  = np.fromstring(data, dtype=np.int16) # To ndarray.
+#                 self.push_item(raw_data)
             self.push_item((time.time(), data)) # Push time and data buffer.
             data = self._stream.read(buffer_size) #, exception_on_overflow=False)
         #
-        print('Source terminated.')
+        self._logger.debug('Source: Source terminated.')
         self.push_item(None)
         #
         if self._stream is not None:
@@ -83,15 +82,15 @@ class SoundSource(wurb_core.SoundSourceBase):
                 self._stream.stop_stream()
                 self._stream.close()
             except: 
-                self._logger.error('Sound recorder: Pyaudio stream stop/close failed.')
+                self._logger.error('Recorder: Pyaudio stream stop/close failed.')
             self._stream = None
         #
         if self._pyaudio is not None:
             try: self._pyaudio.terminate()
             except: 
-                self._logger.error('Sound recorder: Pyaudio terminate failed.')
+                self._logger.error('Recorder: Pyaudio terminate failed.')
             self._pyaudio = None
-        
+
     # Sound source utils.   
     def get_device_list(self):
         """ """
@@ -117,6 +116,46 @@ class SoundSource(wurb_core.SoundSourceBase):
         #
         return None
     
+class SoundSourceM500(SoundSource):
+    """ Subclass of SoundSource for the Pettersson M500 microphone. """
+    def __init__(self, callback_function=None):
+        """ """
+        super(SoundSourceM500, self).__init__(callback_function)
+        #
+        self._in_sampling_rate_hz = int(self._settings.get_value('recorder_', '500000')) # in_sampling_rate_hz
+        self._in_adc_resolution_bits = int(self._settings.get_value('recorder_', '16')) # in_adc_resolution_bits
+        self._in_width = int(self._in_adc_resolution_bits / 8) 
+        self._in_channels = int(self._settings.get_value('recorder_', '1')) # in_channels
+        
+    def source_exec(self):
+        """ For the Pettersson M500 microphone. """
+        self._active = True
+        #
+        try:
+            self._m500batmic = wurb_core.PetterssonM500BatMic()
+            self._stream_active = True
+            #
+            self._m500batmic.start_stream()
+            self._m500batmic.led_on()            
+
+        except Exception as e:
+            self._m500batmic = None
+            self._logger.error('Recorder: Failed to create stream: ' + str(e))
+            # Report to state machine.
+            self._callback_function('rec_source_error')
+            return
+        # Main source loop.
+        data = self._m500batmic.read_stream().tostring()
+        while self._active and data:
+            self.push_item((time.time(), data)) # Push time and data buffer.
+            data = self._m500batmic.read_stream().tostring()
+        #
+        self._logger.debug('Source M500: Source terminated.')
+        self.push_item(None)
+        #
+        self._m500batmic.stop_stream()
+
+
 class SoundProcess(wurb_core.SoundProcessBase):
     """ Subclass of SoundProcessBase. """
     def __init__(self, callback_function=None):
@@ -137,8 +176,8 @@ class SoundProcess(wurb_core.SoundProcessBase):
 #         self._threshold_db = -80.0
         self._threshold = math.pow(10.0, self._threshold_db/10.0)
 #         test_db = 20*math.log10(0.01)
-#         print('DEBUG: ' + str(test_db))
-        print('Threshold db: ' + str(self._threshold_db) + ' magnitude: ' + str(self._threshold))
+#         self._logger.debug('DEBUG: ' + str(test_db))
+        self._logger.debug('Threshold db: ' + str(self._threshold_db) + ' magnitude: ' + str(self._threshold))
         #
         self._peak_freq_file = open('peak_file.txt', 'w')
         peak_header = ['time', 'frequency', 'amplitude']
@@ -173,7 +212,7 @@ class SoundProcess(wurb_core.SoundProcessBase):
             time_and_data = self.pull_item()
 
             if time_and_data is None:
-                print('Process terminated.')
+                self._logger.debug('Process terminated.')
                 self._active = False
                 # Terminated by previous step.
                 self.push_item(None)
@@ -208,192 +247,43 @@ class SoundProcess(wurb_core.SoundProcessBase):
     def _sound_analysis(self, time_and_data):
         """ """
         rec_time, raw_data = time_and_data
-        
+        # TODO: Move this:
         self_window_size = 2048
         self._jump_size = 2048
         self_blackmanharris_window = scipy.signal.blackmanharris(self_window_size)        
         # Max db value in window. dbFS = db full scale. Half spectrum used.
         self_blackmanharris_dbfs_max = np.sum(self_blackmanharris_window) / 2 
         self_freq_bins_hz = np.arange((self_window_size / 2) + 1) / (self_window_size / 384000) # self_sampling_frequency)
-
-        
+        #
         data_int16 = np.fromstring(raw_data, dtype=np.int16) # To ndarray.
 #         self._work_buffer = np.concatenate([self._work_buffer, data_int16])
         self._work_buffer = data_int16
         #
         while len(self._work_buffer) >= self._frame_size:
+            # Get frame of window size.
             data_frame = self._work_buffer[:self._frame_size] # Copy frame.
             self._work_buffer = self._work_buffer[self._jump_size:] # Cut the first jumped size.            
-            #
-            signal = data_frame / 32768.0 # Transform to intervall 0-1.
-            
-            signal = signal * self_blackmanharris_window
+            # Transform to intervall -1 to 1 and apply window function.
+            signal = data_frame / 32768.0 * self_blackmanharris_window
+            # From time domain to frequeny domain.
             spectrum = np.fft.rfft(signal)
-
-            spectrum[ self_freq_bins_hz < 15000.0 ] = 0.0000001 # High pass filter. Unit Hz.
-
-
+            # High pass filter. Unit Hz. Cut below 15 kHz.
+            spectrum[ self_freq_bins_hz < 15000.0 ] = 0.000000001 # log10 does not like zero.
+            # Convert spectrum to dBFS (bin values related to maximal possible value).
             dbfs_spectrum = 20 * np.log10(np.abs(spectrum) / self_blackmanharris_dbfs_max)
-            
+            # Find peak and dBFS value for the peak.
             bin_peak_index = dbfs_spectrum.argmax()
             peak_db = dbfs_spectrum[bin_peak_index]
-            
+            # Treshold.
             if peak_db > -50:
                 peak_frequency_hz = bin_peak_index * 384000 / self_window_size
-                print('DEBUG: Peak freq hz: '+ str(peak_frequency_hz) + '   dbFS: ' + str(peak_db))
+                self._logger.debug('Peak freq hz: '+ str(peak_frequency_hz) + '   dBFS: ' + str(peak_db))
+                print('Peak freq hz: '+ str(peak_frequency_hz) + '   dBFS: ' + str(peak_db))
                 return True
-
         #
         print('DEBUG: Silent.')
         return False
-            
-#     def _sound_analysis(self, raw_data):
-#         """ """
-#         data_int16 = np.fromstring(raw_data, dtype=np.int16) # To ndarray.
-# #         self._work_buffer.concatenate(data_int16)
-#         self._work_buffer = np.concatenate([self._work_buffer, data_int16])
-#         #
-#         while len(self._work_buffer) >= self._frame_size:
-#             data_frame = self._work_buffer[:self._frame_size] # Copy frame.
-#             self._work_buffer = self._work_buffer[self._jump_size:] # Cut the first jumped size.            
-# #             #
-# #             if self._is_silent(data):
-#             signal = data_frame / 32768.0 # Transform to intervall 0-1.
-#             # Alterenative 1:
-#     #         if np.max(signal) < self._threshold:
-#     #             return True
-#             # Alternative 2:
-#     #         if np.sqrt(np.mean(signal**2)) < self._threshold:
-#     #             return True
-#             # Alternative 3:
-#             signal = signal * self._window
-#             spectrum_cpx = np.fft.rfft(signal)
-#     #         spectrum_cpx = spectrum_cpx**2
-#             spectrum_cpx[ self._freq_bins_hz < 15000.0 ] = 0 # High pass filter. Unit Hz.
-#             signal_cpx = np.fft.irfft(spectrum_cpx) 
-#             signal = np.abs(signal_cpx)
-#      
-#             if np.mean(signal) < self._threshold:
-#     #         if np.sqrt(np.mean(signal**2)) < self._threshold:
-#     #         if np.max(signal) < self._threshold:
-#                 return True
-#             #
-#             # Check peak frequency if not silent.
-#             self._find_peak(spectrum_cpx)
-#      
-#             # Test:
-#             if np.max(signal) > 0.2:
-#                 print('Max-2: ' + str(np.max(signal)))
-#             return False
-#         #
-#         return False
-            
 
-                    
-    
-#     def process_buffer(self, raw_data):
-#         """ """
-#         self._work_buffer += raw_data
-#         #
-#         while len(self._work_buffer) >= self._frame_size:
-#             data_raw = self._work_buffer[:self._frame_size] # Copy frame.
-#             data = np.fromstring(data_raw, dtype=np.int16) # To ndarray.
-# 
-#             out_buffer = self._work_buffer[:self._jump_size] # Copy. Don't destroy out buffer.
-#             self._work_buffer = self._work_buffer[self._jump_size:] # Cut the first jumped size.            
-#             #
-#             if self._is_silent(data):
-#                 if self._silent_counter < self._silent_counter_max:
-#                     self.push_item(out_buffer)
-#                 else:
-#                     self._pre_silent_items.append(out_buffer) 
-#                     if len(self._pre_silent_items) >  self._silent_counter_max:
-#                         self._pre_silent_items.pop(0)  
-#                     pass
-#                 #
-#                 if self._silent_counter > self._silent_counter_max:
-#                     if (self._silent_counter *4) % self._silent_counter_max == 0: # %=modulo.
-#                         # Add some empty frames to indicate silence length.
-#                         self.push_item(self._empty_frame.astype(np.int16))
-#                 #
-#                 self._silent_counter += 1
-#             else:
-#                 #
-#                 if len(self._pre_silent_items) >  0:
-#                     for pre_silent_item in self._pre_silent_items:
-#                         self.push_item(pre_silent_item)
-#                     self._pre_silent_items = []
-#                 #
-#                 if self._silent_counter > self._silent_counter_max:
-#                     print('Silent counter: ' + str(self._silent_counter))
-#                 self._silent_counter = 0
-#                 #
-#                 self.push_item(out_buffer)
-#             #
-#             self._counter_ms += 1
-#     
-#     def _is_silent(self, data):
-#         """ """
-#         signal = data / 32768.0 # Transform to intervall 0-1.
-#         # Alterenative 1:
-# #         if np.max(signal) < self._threshold:
-# #             return True
-#         # Alternative 2:
-# #         if np.sqrt(np.mean(signal**2)) < self._threshold:
-# #             return True
-#         # Alternative 3:
-#         signal = signal * self._window
-#         spectrum_cpx = np.fft.rfft(signal)
-# #         spectrum_cpx = spectrum_cpx**2
-#         spectrum_cpx[ self._freq_bins_hz < 15000.0 ] = 0 # High pass filter. Unit Hz.
-#         signal_cpx = np.fft.irfft(spectrum_cpx) 
-#         signal = np.abs(signal_cpx)
-# 
-#         if np.mean(signal) < self._threshold:
-# #         if np.sqrt(np.mean(signal**2)) < self._threshold:
-# #         if np.max(signal) < self._threshold:
-#             return True
-#         #
-#         # Check peak frequency if not silent.
-#         self._find_peak(spectrum_cpx)
-# 
-#         # Test:
-#         if np.max(signal) > 0.2:
-#             print('Max-2: ' + str(np.max(signal)))
-#         return False
-# 
-#     def _find_peak(self, spectrum_cpx):
-#         """ """
-#         bin_peak_index = spectrum_cpx.argmax()
-#         #
-#         if (bin_peak_index > 1) and (bin_peak_index < len(spectrum_cpx) - 3):
-#             # Use quadratic interpolation around the max.
-#             spectrum = np.abs(spectrum_cpx)    
-#             y0,y1,y2 = np.log(spectrum[bin_peak_index-1:bin_peak_index+2:] + [0.000001, 0.000001, 0.000001]) # Delta.
-#             x1 = (y2 - y0) * .5 / (2 * y1 - y2 - y0)
-#             # Adjust bin frequency value.
-#             ###thefreq = (which+x1)*384000/2048
-#             peak_frequency_hz = (bin_peak_index + x1) * 384000 / self._frame_size
-#         else:
-#             peak_frequency_hz = bin_peak_index * 384000 / self._frame_size
-#         #
-#         # Test:
-#         peak_frequency_hz_simple = bin_peak_index * 384000 / self._frame_size
-#         value_at_max = np.abs(spectrum_cpx[bin_peak_index])
-# #         print('Peak: ' + str(peak_frequency_hz) + 
-# #               '   Peak-simple: ' + str(peak_frequency_hz_simple) + 
-# #               '   value: ' + str(value_at_max))
-#         #
-#         print('Time ms: ' + str(self._counter_ms) + 
-#               '   Peak: ' + str(round(peak_frequency_hz/1000, 2)) +
-#               '   Value: ' + str(round(value_at_max, 2)))
-#         
-#         # TODO: Add to file (peak over time) and plot result.
-#         peak_row = [str(self._counter_ms), 
-#                     str(round(peak_frequency_hz/1000, 2)), 
-#                     str(round(value_at_max, 2))]
-#         self._peak_freq_file.write('\t'.join(peak_row) + '\n')
-        
 
 class SoundTarget(wurb_core.SoundTargetBase):
     """ Subclass of SoundTargetBase. """
@@ -406,16 +296,15 @@ class SoundTarget(wurb_core.SoundTargetBase):
         super(SoundTarget, self).__init__()
         #
         # From settings. 
-        self._dir_path = self._settings.get_value('aaa', 'test_rec') # dir_path
-        self._filename_lat_long = self._settings.get_value('aaa', 'N00.00E00.00') # filename_lat_long
-        self._filename_prefix = self._settings.get_value('aaa', 'WURB') # filename_prefix
-        self._filename_rec_type = self._settings.get_value('aaa', 'TE384') # filename_rec_type
-        self._sampling_rate = int(self._settings.get_value('aaa', '38400')) # sampling_rate_hz
-        self._adc_resolution = int(self._settings.get_value('aaa', '16')) # adc_resolution_bits
+        self._dir_path = self._settings.get_value('recorder_dir_path', 'test_rec')
+        self._filename_lat_long = self._settings.get_value('recorder_filename_lat_long', 'N00.00E00.00')
+        self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB')
+        self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE384')
+        self._out_sampling_rate_hz = int(self._settings.get_value('recorder_out_sampling_rate_hz', '38400'))
+        self._adc_resolution = int(self._settings.get_value('recorder_adc_resolution', '16'))
         self._width = int(self._adc_resolution / 8) 
-        self._channels = int(self._settings.get_value('aaa', '1')) # channels # 1 = mono, 2 = stereo.
-        self._max_record_length_s = int(self._settings.get_value('aaa', '300')) # max_record_length_s TODO: each_record_length_s
-        self._timezone = self._settings.get_value('aaa', '') # timezone
+        self._channels = int(self._settings.get_value('recorder_channels', '1')) # 1 = mono, 2 = stereo.
+        self._max_record_length_s = int(self._settings.get_value('recorder_max_record_length_s', '300'))
         #
         self._wave_file = None
         self._file_open = False
@@ -489,14 +378,14 @@ class SoundTarget(wurb_core.SoundTargetBase):
                 self._close_file()
         #
         except Exception as e:
-            self._logger.error('Sound recorder: Sound target exception: ' + str(e))
+            self._logger.error('Recorder: Sound target exception: ' + str(e))
             self._active = False # Terminate
             self._callback_function('rec_target_error')
 
     def _open_file(self):
         """ """
         self._file_open = True
-        self._logger.info('Sound recorder: Audio target _open_file')
+        self._logger.info('Recorder: Audio target _open_file')
         # Create file name.
         # Default time and position.
         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
@@ -526,11 +415,11 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._wave_file = wave.open(filenamepath, 'wb')
         self._wave_file.setnchannels(self._channels)
         self._wave_file.setsampwidth(self._width)
-        self._wave_file.setframerate(self._sampling_rate)
+        self._wave_file.setframerate(self._out_sampling_rate_hz)
 
     def _close_file(self):
         """ """
-        self._logger.info('Sound recorder: Audio target _close_file')
+        self._logger.info('Recorder: Audio target _close_file')
         if self._wave_file is not None:
             self._wave_file.close()
             self._wave_file = None 
@@ -539,14 +428,24 @@ class SoundTarget(wurb_core.SoundTargetBase):
     
 
 
-# === MAIN ===    
+# === TEST ===    
 if __name__ == "__main__":
     """ """
-    source = SoundSource()
+    # Default configured for Pettersson M500-384.
+    # Command to test M500-384: PYTHONPATH="." python3 wurb_core/wurb_recorder.py
+    source = SoundSource() 
+    # M500 as source. Must have sudo privileges for direct USB access.
+    # Command to test M500: sudo PYTHONPATH="." python3 wurb_core/wurb_recorder.py
+    # source = SoundSourceM500() 
+    #
     process = SoundProcess()
+    #
     target = SoundTarget()
+    #
     manager = wurb_core.WurbSoundStreamManager(source, process, target,
                                                source_queue_max=100)
     #
     manager.start_streaming()
+    time.sleep(30)
+    manager.stop_streaming()
 

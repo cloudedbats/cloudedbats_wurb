@@ -51,10 +51,10 @@ class WurbScheduler(object):
         """ """
         # Defaults.
         self._local_time = datetime.datetime.now()
-        self._latitude = float(self._settings.get_value('default_latitude', '0.0'))
-        self._longitude = float(self._settings.get_value('default_longitude', '0.0'))
+        self._latitude = float(self._settings.get_value('scheduler_default_latitude', '0.0'))
+        self._longitude = float(self._settings.get_value('scheduler_default_longitude', '0.0'))
         # GPS.
-        gps_only = self._settings.get_value('only_use_gps_time_and_pos', 'False')
+        gps_only = self._settings.get_value('scheduler_use_gps_only', 'False')
         self._gps_time_and_pos(gps_only)
         #
         start, stop = self._calculate_start_and_stop_time()
@@ -106,10 +106,10 @@ class WurbScheduler(object):
         """ """
         try:
             # Read from config file.
-            start_event_str = self._settings.get_value('record_start_event', 'sunset')
-            start_adjust_int = int(self._settings.get_value('record_start_adjust', 0))
-            stop_event_str = self._settings.get_value('record_stop_event', 'sunrise')
-            stop_adjust_int = int(self._settings.get_value('record_stop_adjust', 0))
+            start_event_str = self._settings.get_value('scheduler_start_event', 'sunset')
+            start_adjust_int = int(self._settings.get_value('scheduler_start_adjust', 0))
+            stop_event_str = self._settings.get_value('scheduler_stop_event', 'sunrise')
+            stop_adjust_int = int(self._settings.get_value('scheduler_stop_adjust', 0))
             # Get Sunset, sunrise, etc.
             sunrise_dict = wurb_core.WurbSunsetSunrise().get_solartime_dict(
                                                                     self._latitude, 

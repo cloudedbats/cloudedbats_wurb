@@ -4,7 +4,6 @@
 # Copyright (c) 2016-2017 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os 
 import time 
 import logging
 import threading
@@ -42,13 +41,11 @@ class ControlByMouse(object):
 
     def stop(self):
         """ """
-        # TODO: Note, the read command is blocking the thread.
+        # TODO: The read command is blocking the thread.
         self._active = False
         
     def left_and_right_action(self):
         """ """
-#         self._logger.info('Mouse control: Raspberry Pi shutdown.')
-#         os.system('sudo shutdown -h now')
         self._callback_function('mouse_rpi_shutdown')
 
     def left_action(self):
@@ -58,12 +55,10 @@ class ControlByMouse(object):
     def middle_action(self):
         """ """
         self._callback_function('mouse_rec_auto')
-        # self._cloudedbats_mini.auto_on()
 
     def right_action(self):
         """ """
         self._callback_function('mouse_rec_off')
-        # self._cloudedbats_mini.rec_off()
         
     # Local methods.
     def _start_remote_control(self):

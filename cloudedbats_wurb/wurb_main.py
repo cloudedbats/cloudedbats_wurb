@@ -10,7 +10,9 @@ import wurb_core
 import wurb_raspberry_pi
 
 class WurbMain():
-    """ """
+    """ Main class for CloudedBats WURB, Wireless Ultrasonic Recorder for Bats.
+        Version: "Bat season 2017".
+    """
     def __init__(self):
         """ """
         # Logging.
@@ -20,32 +22,32 @@ class WurbMain():
         self._logger.info('Welcome to CloudedBats-WURB')
         self._logger.info('=========== ^ö^ ===========')
         self._logger.info('')
+        # Check input cards and write to log.
         self._logger.info('Connected sound cards for input streams:' )
         input_sound_cards = wurb_core.SoundSource().get_device_list()
         if input_sound_cards:
             for input_sound_card in input_sound_cards:
                 self._logger.info('- ' + input_sound_card) 
         else:
-            self._logger.info('- No connected sound cards found.') 
-        #
+            self._logger.error('- No connected sound cards found at startup.') 
+        # Suspend manin thread for logging.
         time.sleep(0.1)
-        #
+        # Modules.
         self._settings = None
         self._state_machine = None
         self._scheduler = None
         self._gpio_ctrl = None
         self._mouse_ctrl = None
-        #
+        # Start all modules.
         self.start()
         #
         
-        
-        self._logger.info('Logger test-info')
-        self._logger.error('Logger test-error')
-        self._logger.warning('Log test-warning')
-        self._logger.debug('Logger test-debug')
-        
-        
+        # TODO: Logging test. Remove later. 
+        self._logger.info('Logging test-info')
+        self._logger.error('Logging test-error')
+        self._logger.warning('Logging test-warning')
+        self._logger.debug('Logging test-debug')
+    
     
     def start(self):
         """ """
@@ -58,7 +60,7 @@ class WurbMain():
         self._state_machine.set_perform_action_function(self.perform_action)
         self._state_machine.start()
         # Sunset-sunrise. Singleton util.
-        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('timezone', 'UTC'))
+        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('wurb_timezone', 'UTC'))
         # GPS. Singleton util.
         wurb_core.WurbGpsReader()
         # Control-GPIO. Connected by callback.
@@ -67,10 +69,17 @@ class WurbMain():
         self._mouse_ctrl = wurb_raspberry_pi.ControlByMouse(callback_function=self.perform_event)
         # Control-scheduler. Connected by callback.
         self._scheduler = wurb_core.WurbScheduler(callback_function=self.perform_event)
-        # Sound stream parts.
-        self._sound_source = wurb_core.SoundSource(callback_function=self.perform_event)
+        # Sound stream parts:
+        # - Source
+        if self._settings.get_value('wurb__batmic_m500', 'False') == 'True':
+            self._sound_source = wurb_core.SoundSourceM500(callback_function=self.perform_event)
+        else:
+            self._sound_source = wurb_core.SoundSource(callback_function=self.perform_event)
+        # - Process.
         self._sound_process = wurb_core.SoundProcess(callback_function=self.perform_event)
+        # - Target.
         self._sound_target = wurb_core.SoundTarget(callback_function=self.perform_event)
+        # - Manager.
         self._sound_manager = wurb_core.WurbSoundStreamManager(
                                     self._sound_source, 
                                     self._sound_process, 
@@ -98,22 +107,22 @@ class WurbMain():
             if action == '':
                 pass
             elif action == 'load_config':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
             elif action == 'load_wifi_config':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
             elif action == 'load_settings':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
             elif action == 'rec_start':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
                 self._sound_manager.start_streaming()
             elif action == 'rec_stop':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
                 self._sound_manager.stop_streaming() #(stop_immediate=True)
             elif action == 'rpi_shutdown':
-                print('DEBUG: WurbMain action: ' + action)
+                self._logger.debug('DEBUG: WurbMain action: ' + action)
             #    
             else:
-                self._logger.debug('DEBUG: WURB Main. Failed to find action: ' + action)
+                self._logger.debug('WURB Main: Failed to find action: ' + action)
 
     def define_state_machine(self):
         """ """
@@ -150,12 +159,11 @@ if __name__ == "__main__":
     wurb_main = WurbMain()
     wurb_main.perform_event('setup')
 
-    test = True
-    if test:
-        time.sleep(1.0)
-        wurb_main.perform_event('test_rec_on')
-        time.sleep(35.0)
-        wurb_main.perform_event('test_rec_off')
-        time.sleep(0.1)
-        wurb_main.stop()
+    # TODO: For development.
+    time.sleep(1.0)
+    wurb_main.perform_event('test_rec_on')
+    time.sleep(20.0) 
+    wurb_main.perform_event('test_rec_off')
+    time.sleep(0.1)
+    wurb_main.stop()
 

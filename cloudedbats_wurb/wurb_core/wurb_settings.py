@@ -13,20 +13,20 @@ import wurb_core
 class WurbSettings(object):
     """ """
     def __init__(self,
-                 internal_path_name = 'wurb_settings',
-                 external_path_name = '/media/usb/wurb_settings'):
+                 internal_path = '../wurb_settings',
+                 external_path = '/media/usb/clouded_bats/wurb_settings'):
         """ """
         self._logger = logging.getLogger('CloudedBatsWURB')
         # Internal.
-        self._internal_dir_path = pathlib.Path(internal_path_name)
-        self._hw_config_file_path = pathlib.Path(internal_path_name, 'wurb_hw_config.txt')
-        self._wifi_config_file_path = pathlib.Path(internal_path_name, 'wurb_wifi_config.txt')
-        self._user_settings_file_path = pathlib.Path(internal_path_name, 'wurb_user_settings.txt')
+        self._internal_dir_path = pathlib.Path(internal_path)
+        self._hw_config_path = pathlib.Path(internal_path, 'wurb_hw_config.txt')
+        self._wifi_config_path = pathlib.Path(internal_path, 'wurb_wifi_config.txt')
+        self._user_settings_path = pathlib.Path(internal_path, 'wurb_user_settings.txt')
         # External.
-        self._external_dir_path = pathlib.Path(external_path_name)
-        self._external_hw_config_file_path = pathlib.Path(internal_path_name, 'wurb_hw_config.txt')
-        self._external_wifi_config_file_path = pathlib.Path(internal_path_name, 'wurb_wifi_config.txt')
-        self._external_user_settings_file_path = pathlib.Path(internal_path_name, 'wurb_user_settings.txt')
+        self._external_dir_path = pathlib.Path(external_path)
+        self._external_hw_config_path = pathlib.Path(external_path, 'wurb_hw_config.txt')
+        self._external_wifi_config_path = pathlib.Path(external_path, 'wurb_wifi_config.txt')
+        self._external_user_settings_path = pathlib.Path(external_path, 'wurb_user_settings.txt')
         #
         self._wurb_config = {}
         
@@ -47,18 +47,18 @@ class WurbSettings(object):
     
     def _load_hw_config(self):
         """ """
-#         self._logger.info('Mini: Loading configuration file: ' + str(self._file_path))
-        self._load_settings(self._hw_config_file_path)
+        self._logger.info('Settings: Loading configuration file: ' + str(self._hw_config_path))
+        self._load_settings(self._hw_config_path)
         
     def _load_wifi_config(self):
         """ """
-        self._logger.info('Settings: Loading configuration file: ' + str(self._wifi_config_file_path))
-        self._load_settings(self._wifi_config_file_path)
+        self._logger.info('Settings: Loading configuration file: ' + str(self._wifi_config_path))
+        self._load_settings(self._wifi_config_path)
         
     def _load_user_settings(self):
         """ """
-        self._logger.info('Settings: Loading configuration file: ' + str(self._user_settings_file_path))
-        self._load_settings(self._user_settings_file_path)
+        self._logger.info('Settings: Loading configuration file: ' + str(self._user_settings_path))
+        self._load_settings(self._user_settings_path)
         
     def _move_settings(self):
         """ """
@@ -69,13 +69,13 @@ class WurbSettings(object):
         if pathlib.Path(self._external_dir_path).exists():
             # wurb_hw_config.txt
             if self._external_hw_config_file_path.exists():
-                shutil.copy(str(self._external_hw_config_file_path), str(self._hw_config_file_path))
+                shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
             # wurb_wifi_config.txt
             if self._external_wifi_config_file_path.exists():
-                shutil.copy(str(self._external_wifi_config_file_path), str(self._wifi_config_file_path))
+                shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
             # wurb_settings.txt
             if self._external_settings_file_path.exists():
-                shutil.copy(str(self._external_settings_file_path), str(self._settings_file_path))
+                shutil.copy(str(self._external_settings_path), str(self._settings_path))
         
     def _load_settings(self, file_path):
         """ """

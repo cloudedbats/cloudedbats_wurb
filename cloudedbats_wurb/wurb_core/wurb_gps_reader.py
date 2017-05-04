@@ -26,67 +26,73 @@ class WurbGpsReader(object):
     def __init__(self):
         """ """
         self._logger = logging.getLogger('CloudedBatsWURB')
+        self._settings = wurb_core.WurbSettings()
         # Use clear to initiate class members.
         self._clear()
         # Default port for GPSD.
-        self._gpsd_port = 2947
+        self._gpsd_port = int(self._settings.get_value('gps_reader_gpsd_port','2947'))
         # Default timezone.
-        self._timezone = pytz.timezone('UTC')
+        self._timezone = pytz.timezone(self._settings.get_value('wurb_timezone','UTC'))
         # 
         self._debug = False
-
+    
     def start_gps(self):
         """ """
         # Start reading GPS stream.
         self._gps_start()
-
+    
     def stop_gps(self):
         """ """
         self._active = False
-
+    
     def get_time_utc(self):
         """ """
         if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
             return None
         #
         return dateutil.parser.parse(self.gps_time)
-
+    
     def get_time_utc_string(self):
         """ """
         if (not self.gps_time) or (self.gps_time == 'n/a') == 'n/a': # None:
             return None
         #
         return self.gps_time
-
+    
     def set_timezone(self, timezone = 'UTC'):
         """ """
         self._timezone = pytz.timezone(timezone)
-
-    def get_time_local(self):
+    
+    def get_time_local(self, timezone = None):
         """ """
+        if not timezone:
+            timezone = self._timezone
+        #
         if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
             return None
         #
-        return dateutil.parser.parse(self.gps_time).astimezone(self._timezone)
-
-    def get_time_local_string(self):
+        return dateutil.parser.parse(self.gps_time).astimezone(timezone)
+    
+    def get_time_local_string(self, timezone = None):
         """ """
-        
+        if not timezone:
+            timezone = self._timezone
+        #
         if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
             return None
         #
         datetime_utc = dateutil.parser.parse(self.gps_time)
-        datetimestring = str(datetime_utc.astimezone(self._timezone).strftime("%Y%m%dT%H%M%S%z"))
+        datetimestring = str(datetime_utc.astimezone(timezone).strftime("%Y%m%dT%H%M%S%z"))
         return datetimestring
-
+    
     def get_latitude(self):
         """ """
         return self.gps_latitude
-        
+    
     def get_longitude(self):
         """ """
         return self.gps_longitude
-        
+    
     def get_latlong_string(self):
         """ """
         if (not self.gps_latitude) or (not self.gps_longitude):
@@ -104,7 +110,7 @@ class WurbGpsReader(object):
             return latlong_string
         else:
             return None
-        
+    
     def _clear(self):
         """ """
         self._gps = None
@@ -113,7 +119,7 @@ class WurbGpsReader(object):
         self.gps_time = None
         self.gps_latitude = None
         self.gps_longitude = None
-
+    
     def _gps_start(self):
         """ """
         try:
@@ -123,7 +129,7 @@ class WurbGpsReader(object):
             self._gps_thread.start()
         except Exception as e:
             self._logger.error('GPS reader: Failed to connect to GPSD. ' + str(e))
-
+    
     def _gps_thread(self):
         """ """
         try:
