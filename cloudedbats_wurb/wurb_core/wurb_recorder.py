@@ -28,13 +28,13 @@ class SoundSource(wurb_core.SoundSourceBase):
         """ Called from base class. """
  
         # From settings. Defaults for Pettersson M500-384.
-        self._in_sampling_rate_hz = int(self._settings.get_value('recorder_in_sampling', '384000')) # in_sampling_rate_hz
+        self._in_sampling_rate_hz = int(self._settings.get_value('recorder_in_sampling_rate_hz', '384000')) # in_sampling_rate_hz
         self._in_adc_resolution_bits = int(self._settings.get_value('recorder_in_adc_resolution_bits', '16')) # in_adc_resolution_bits
         self._in_width = int(self._in_adc_resolution_bits / 8) 
-        self._in_channels = int(self._settings.get_value('recorde_in_channels', '1')) # in_channels
+        self._in_channels = int(self._settings.get_value('recorder_in_channels', '1')) # in_channels
         # Sound card.
-        in_device_name = self._settings.get_value('recorder_in_device_name', 'Pettersson')
-        in_device_index = self._settings.get_value('recorder_in_device_index', 0) # Default=First recognized sound card.
+        in_device_name = self._settings.get_value('recorder_part_of_device_name', 'Pettersson')
+        in_device_index = self._settings.get_value('recorder_device_index', 0) # Default=First recognized sound card.
         if in_device_name:
             self._in_device_index = self.get_device_index(in_device_name)
         else:
@@ -179,9 +179,9 @@ class SoundProcess(wurb_core.SoundProcessBase):
 #         self._logger.debug('DEBUG: ' + str(test_db))
         self._logger.debug('Threshold db: ' + str(self._threshold_db) + ' magnitude: ' + str(self._threshold))
         #
-        self._peak_freq_file = open('peak_file.txt', 'w')
-        peak_header = ['time', 'frequency', 'amplitude']
-        self._peak_freq_file.write('\t'.join(peak_header) + '\n')
+#         self._peak_freq_file = open('peak_file.txt', 'w')
+#         peak_header = ['time', 'frequency', 'amplitude']
+#         self._peak_freq_file.write('\t'.join(peak_header) + '\n')
 
     def process_exec(self):
         """ Called from base class. """
@@ -217,7 +217,7 @@ class SoundProcess(wurb_core.SoundProcessBase):
                 # Terminated by previous step.
                 self.push_item(None)
                 #
-                self._peak_freq_file.close()
+#                 self._peak_freq_file.close()
                 #
             else:
 #                 self.process_buffer(raw_data)
@@ -296,14 +296,17 @@ class SoundTarget(wurb_core.SoundTargetBase):
         super(SoundTarget, self).__init__()
         #
         # From settings. 
-        self._dir_path = self._settings.get_value('recorder_dir_path', 'test_rec')
+        self._dir_path = self._settings.get_value('recorder_dir_path', '/media/usb/wurb1_rec')
         self._filename_lat_long = self._settings.get_value('recorder_filename_lat_long', 'N00.00E00.00')
-        self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB')
+        self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB1')
         self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE384')
-        self._out_sampling_rate_hz = int(self._settings.get_value('recorder_out_sampling_rate_hz', '38400'))
+        if self._settings.get_value('recorder_pettersson_m500', 'False') == 'False':
+            self._out_sampling_rate_hz = int(self._settings.get_value('recorder_out_sampling_rate_hz', '38400'))
+        else:
+            self._out_sampling_rate_hz = int(self._settings.get_value('recorder_out_sampling_rate_hz', '50000'))
         self._adc_resolution = int(self._settings.get_value('recorder_adc_resolution', '16'))
         self._width = int(self._adc_resolution / 8) 
-        self._channels = int(self._settings.get_value('recorder_channels', '1')) # 1 = mono, 2 = stereo.
+        self._channels = int(self._settings.get_value('recorder_out_channels', '1')) # 1 = mono, 2 = stereo.
         self._max_record_length_s = int(self._settings.get_value('recorder_max_record_length_s', '300'))
         #
         self._wave_file = None

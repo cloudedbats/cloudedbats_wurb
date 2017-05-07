@@ -31,6 +31,14 @@ class WurbScheduler(object):
         """ """
         return self._rec_on
 
+    def check_state(self):
+        """ """
+        if self._callback_function:
+            if self._rec_on:
+                self._callback_function('scheduler_rec_on')
+            else:
+                self._callback_function('scheduler_rec_off')
+
     def start(self):
         """ """
         if self._thread_active:

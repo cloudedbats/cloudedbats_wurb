@@ -17,7 +17,7 @@ class WurbStateMachine(object):
         #
         self._state_machine_dict = {}
         self._perform_action_function = None
-        self._current_state = 'init'
+        self._current_state = 'idle'
         #
         self._active = False
         self._event_queue = queue.Queue()
