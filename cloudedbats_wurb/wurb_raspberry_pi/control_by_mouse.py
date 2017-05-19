@@ -144,8 +144,8 @@ class ControlByMouse(object):
                         break
                     # The read command waits until next mouse action.
                     mouse_buffer = mice_file.read(3) # TODO: This is blocking the thread. 
-#                     buttons = mouse_buffer[0] # Python 2.7
-                    buttons = ord(mouse_buffer[0]) # Python 3.
+#                     buttons = ord(mouse_buffer[0]) # Python 2.7
+                    buttons = mouse_buffer[0] # Python 3.
                     button_left = (buttons & 0x1) > 0
                     button_right = (buttons & 0x2) > 0
                     button_middle = (buttons & 0x4) > 0

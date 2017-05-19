@@ -25,28 +25,29 @@ class WurbStateMachine(object):
         self._action_queue = queue.Queue()
         self._action_thread = None
     
-    def set_states(self, state_machine_data):
+    def load_states(self, state_machine_data):
         """ """
-        self._logger.debug('DEBUG: set_states.')
         self._prepare_state_machine_dict(state_machine_data)
+    
+    def set_current_state(self, current_state):
+        """ """
+        self._current_state = current_state
     
     def set_perform_action_function(self, perform_action_function):
         """ """
-        self._logger.debug('DEBUG: set_perform_action_function.')
         self._perform_action_function = perform_action_function
     
     def event(self, event):
         """ """
-        self._logger.debug('DEBUG: event: ' + event)
+        self._logger.debug('State Machine: event: ' + event)
         if self._active:
             try:
                 self._event_queue.put(event, block=False)
             except:
-                self._logger.debug('DEBUG: WurbStateMachine: Event queue is full. Event dropped.')
+                self._logger.error('State Machine: Event queue is full. Event dropped.')
     
     def start(self):
         """ """
-        self._logger.debug('DEBUG: start.')
         self._active = True
         # Start events in thread.
         self._target_thread = threading.Thread(target=self._event_exec, args=[])
@@ -61,7 +62,6 @@ class WurbStateMachine(object):
     
     def _event_exec(self):
         """ """
-        self._logger.debug('DEBUG: _event_exec.')
         while self._active:
             # Get from queue.
             try:
@@ -69,18 +69,20 @@ class WurbStateMachine(object):
             except:
                 continue # No event available. (Don't lock thread.)
             #
+            self._logger.error('State Machine: Event executed: ' + event)                
             key = (self._current_state, event)
             key_wildcard = ('*', event)
             if key in self._state_machine_dict:
                 # Check for exact match.
                 (new_state, actions) = self._state_machine_dict[key]
+                self._logger.error('State Machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
                 self._current_state = new_state
                 for action in actions:
                     time.sleep(0.1) # Release thread.
                     try:
                         self._action_queue.put(action, block=False)
                     except:
-                        self._logger.debug('DEBUG: WurbStateMachine: Action queue is full. Action dropped.')
+                        self._logger.error('State Machine: Action queue is full. Action dropped.')
             # Check for wildcards.
             elif key_wildcard in self._state_machine_dict:
                 #
@@ -91,13 +93,13 @@ class WurbStateMachine(object):
                     try:
                         self._action_queue.put(action, block=False)
                     except:
-                        self._logger.debug('DEBUG: WurbStateMachine: Action queue is full. Action dropped.')
+                        self._logger.error('State Machine: Action queue is full. Action dropped.')
             else:
-                self._logger.debug('DEBUG: _event_exec. Can not find state/event: ' + self._current_state + '/' + event)
+                self._logger.error('State Machine: Can not find state/event: ' + self._current_state + '/' + event)
                     
     def _action_exec(self):
         """ """
-        self._logger.debug('DEBUG: _action_exec.')
+        self._logger.debug('State Machine: _action_exec.')
         while self._active:
             # Get from queue.
             try:
@@ -114,7 +116,6 @@ class WurbStateMachine(object):
             into:
             {(init, setup): (idle, ['load_config', 'load_settings',]),}
         """
-        self._logger.debug('DEBUG: _prepare_state_machine_dict.')
         for row_dict in state_machine_data:
             states = row_dict.get('states', '')
             events = row_dict.get('events', '')
@@ -129,6 +130,6 @@ class WurbStateMachine(object):
                     if key not in self._state_machine_dict:
                         self._state_machine_dict[key] = value
                     else:
-                        self._logger.debug('DEBUG: State machine state/even already exists: ' + 
+                        self._logger.debug('State machine state/even already exists: ' + 
                               str(key) )
 

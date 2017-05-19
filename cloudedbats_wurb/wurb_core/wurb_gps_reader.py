@@ -5,6 +5,7 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 from gps3 import gps3
+import os
 import pytz
 import time
 import dateutil.parser
@@ -16,12 +17,12 @@ import wurb_core
 class WurbGpsReader(object):
     """ Singleton class for GPS time and position. 
         Usage:
-            WurbGpsReader().start_gps() # Activates the class.
+            WurbGpsReader().start_gps() # Activates GPS.
             time = WurbGpsReader().get_time_utc() 
             latitude = WurbGpsReader().get_latitude() 
             longitude = WurbGpsReader().get_longitude() 
             latlong = WurbGpsReader().get_latlong_string() 
-            WurbGpsReader().gps_stop()
+            WurbGpsReader().gps_stop() # DEactivates GPS.
     """
     def __init__(self):
         """ """
@@ -30,34 +31,35 @@ class WurbGpsReader(object):
         # Use clear to initiate class members.
         self._clear()
         # Default port for GPSD.
-        self._gpsd_port = int(self._settings.get_value('gps_reader_gpsd_port','2947'))
+        self._gpsd_port = self._settings.get_value('gps_reader_gpsd_port', '2947')
         # Default timezone.
-        self._timezone = pytz.timezone(self._settings.get_value('wurb_timezone','UTC'))
+        self._timezone = pytz.timezone(self._settings.get_value('wurb_timezone', 'UTC'))
+        # Use GPS time for Raspberry Pi.
+        self._set_rpi_time_from_gps = self._settings.get_value('gps_reader_set_rpi_time_from_gps', 'False')
         # 
         self._debug = False
     
     def start_gps(self):
-        """ """
-        # Start reading GPS stream.
+        """ Start reading GPS stream. """
         self._gps_start()
     
     def stop_gps(self):
-        """ """
+        """ Stop GPS stream. """
         self._active = False
     
     def get_time_utc(self):
         """ """
-        if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
+        if self.gps_time:
+            return dateutil.parser.parse(self.gps_time)
+        else:
             return None
-        #
-        return dateutil.parser.parse(self.gps_time)
     
     def get_time_utc_string(self):
         """ """
-        if (not self.gps_time) or (self.gps_time == 'n/a') == 'n/a': # None:
+        if self.gps_time:
+            return self.gps_time
+        else:
             return None
-        #
-        return self.gps_time
     
     def set_timezone(self, timezone = 'UTC'):
         """ """
@@ -68,22 +70,22 @@ class WurbGpsReader(object):
         if not timezone:
             timezone = self._timezone
         #
-        if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
+        if self.gps_time:
+            return dateutil.parser.parse(self.gps_time).astimezone(timezone)
+        else:
             return None
-        #
-        return dateutil.parser.parse(self.gps_time).astimezone(timezone)
     
     def get_time_local_string(self, timezone = None):
         """ """
         if not timezone:
             timezone = self._timezone
         #
-        if (not self.gps_time) or (self.gps_time == 'n/a'): # None:
+        if self.gps_time:
+            datetime_utc = dateutil.parser.parse(self.gps_time)
+            datetimestring = str(datetime_utc.astimezone(timezone).strftime("%Y%m%dT%H%M%S%z"))
+            return datetimestring
+        else:
             return None
-        #
-        datetime_utc = dateutil.parser.parse(self.gps_time)
-        datetimestring = str(datetime_utc.astimezone(timezone).strftime("%Y%m%dT%H%M%S%z"))
-        return datetimestring
     
     def get_latitude(self):
         """ """
@@ -113,7 +115,6 @@ class WurbGpsReader(object):
     
     def _clear(self):
         """ """
-        self._gps = None
         self._active = False
         #
         self.gps_time = None
@@ -127,39 +128,65 @@ class WurbGpsReader(object):
             self._active = True
             self._gps_thread = threading.Thread(target = self._gps_thread, args = [])
             self._gps_thread.start()
+            self._logger.info('GPS reader: Activated.')
         except Exception as e:
             self._logger.error('GPS reader: Failed to connect to GPSD. ' + str(e))
     
     def _gps_thread(self):
         """ """
+        first_gps_time_received = False
+        first_gps_pos_received = False
+        #
         try:
             gps_socket = gps3.GPSDSocket()
             data_stream = gps3.DataStream()
             gps_socket.connect()
-            gps_socket.watch()
-            for new_data in gps_socket:
-                #
-                if not self._active:
-                    break
-                #
+            gps_socket.watch(True)
+            #
+            while self._active:
+                
+                new_data = gps_socket.next(timeout=5) # Timeout for thread termination. 
                 if new_data:
                     data_stream.unpack(new_data)
                     #
-                    self.gps_time = data_stream.TPV['time']
-                    self.gps_latitude = data_stream.TPV['lat']
-                    self.gps_longitude = data_stream.TPV['lon']
+                    gps_time = data_stream.TPV['time']
+                    gps_latitude = data_stream.TPV['lat']
+                    gps_longitude = data_stream.TPV['lon']
+                    #
+                    if gps_time and (gps_time != 'n/a'):
+                        self.gps_time = data_stream.TPV['time']
+                        #
+                        if not first_gps_time_received:
+                            first_gps_time_received = True
+                            self._logger.info('GPS reader: First GPS time received: ' + self.get_time_local_string())
+                            # Set Raspberry Pi time.
+                            if self._set_rpi_time_from_gps:
+                                self._logger.info('GPS reader: Raspberry Pi date/time is set.')
+                                os.system('sudo date -s "' + self.gps_time + '"')
+                    else:
+                        # Don't use the old fetched time.
+                        self.gps_time = None
+                        
+                    if gps_latitude and (gps_latitude != 'n/a'):
+                        if gps_longitude and (gps_longitude != 'n/a'):
+                            # Always use last known position.
+                            self.gps_latitude = gps_latitude
+                            self.gps_longitude = gps_longitude
+                            #
+                            if not first_gps_pos_received:
+                                first_gps_pos_received = True
+                                self._logger.info('GPS reader: First GPS position received: ' + self.get_latlong_string())
                     #
                     if self._debug:
                         if self.gps_time: print(str(self.gps_time))
                         if self.gps_latitude: print(str(self.gps_latitude)) 
                         if self.gps_longitude: print(str(self.gps_longitude))
                 else:
-                    time.sleep(0.1)
+                    # Don't use the old fetched time.
+                    self.gps_time = None
         #
         finally:
-            if self._gps:
-                self._gps.close()
-                self._clear()
+            gps_socket.watch(False)
 
 
 
@@ -168,13 +195,13 @@ if __name__ == "__main__":
     """ """
     gps_reader = WurbGpsReader()
     gps_reader.start_gps()
-    gps_reader._debug = True
+    gps_reader._debug = True # False
     #
-    time.sleep(5)
+    time.sleep(10)
     print('')
     print('TIME: ' + str(gps_reader.get_time_utc()))
     print('LATLONG-STRING: ' + str(gps_reader.get_latlong_string()))
     print('')
-    time.sleep(5)
+    time.sleep(10)
     #
     gps_reader.stop_gps()

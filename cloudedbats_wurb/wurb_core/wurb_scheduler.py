@@ -84,15 +84,16 @@ class WurbScheduler(object):
             #
             time.sleep(1.0)
 
-    def _gps_time_and_pos(self, gps_only = 'False'):
+    def _gps_time_and_pos(self, gps_only=False):
         """ """
         # Get time and position from GPS. 
         gps_local_time = wurb_core.WurbGpsReader().get_time_local()
         gps_latitude = wurb_core.WurbGpsReader().get_latitude()
         gps_longitude = wurb_core.WurbGpsReader().get_longitude()
         #
-        if gps_only == 'True':
+        if gps_only:
             while not (gps_local_time and gps_latitude and gps_longitude):
+                self._logger.info('Scheduler: Waiting for GPS time and position.')
                 #
                 if not self._thread_active:
                     break
@@ -115,9 +116,9 @@ class WurbScheduler(object):
         try:
             # Read from config file.
             start_event_str = self._settings.get_value('scheduler_start_event', 'sunset')
-            start_adjust_int = int(self._settings.get_value('scheduler_start_adjust', 0))
+            start_adjust_int = self._settings.get_value('scheduler_start_adjust', 0)
             stop_event_str = self._settings.get_value('scheduler_stop_event', 'sunrise')
-            stop_adjust_int = int(self._settings.get_value('scheduler_stop_adjust', 0))
+            stop_adjust_int = self._settings.get_value('scheduler_stop_adjust', 0)
             # Get Sunset, sunrise, etc.
             sunrise_dict = wurb_core.WurbSunsetSunrise().get_solartime_dict(
                                                                     self._latitude, 
@@ -135,7 +136,7 @@ class WurbScheduler(object):
             if start_event_str == 'sunset':
                 start_time_str = sunrise_dict.get('sunset', '18:00')
             elif start_event_str == 'dusk':
-                start_time_str = sunrise_dict.get('dusk', '18.20')
+                start_time_str = sunrise_dict.get('dusk', '18:20')
             elif start_event_str == 'dawn':
                 start_time_str = sunrise_dict.get('dawn', '05:40')
             elif start_event_str == 'sunrise':
@@ -144,7 +145,7 @@ class WurbScheduler(object):
             if stop_event_str == 'sunset':
                 stop_time_str = sunrise_dict.get('sunset', '18:00')
             elif stop_event_str == 'dusk':
-                stop_time_str = sunrise_dict.get('dusk', '18.20')
+                stop_time_str = sunrise_dict.get('dusk', '18:20')
             elif stop_event_str == 'dawn':
                 stop_time_str = sunrise_dict.get('dawn', '05:40')
             elif stop_event_str == 'sunrise':

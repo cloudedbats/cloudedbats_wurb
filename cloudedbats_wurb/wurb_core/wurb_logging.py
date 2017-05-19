@@ -33,21 +33,24 @@ class WurbLogging(object):
         # Log directories.
         if not self._internal_dir_path.exists():
             self._internal_dir_path.mkdir(parents=True)
-        if pathlib.Path('media/usb').exists():
+        if pathlib.Path('/media/usb').exists():
             if not self._external_dir_path.exists():
                 self._external_dir_path.mkdir(parents=True)
         
         # Define rotation log files for internal log files.
-        log_handler = logging.handlers.RotatingFileHandler(str(self._internal_log_path),
-                                                           maxBytes = 128*1024,
-                                                           backupCount = 10)
-        log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
-        log_handler.setLevel(logging.DEBUG)
-        log.addHandler(log_handler)
+        try:
+            log_handler = logging.handlers.RotatingFileHandler(str(self._internal_log_path),
+                                                               maxBytes = 128*1024,
+                                                               backupCount = 10)
+            log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
+            log_handler.setLevel(logging.DEBUG)
+            log.addHandler(log_handler)
+        except Exception as e:
+            print('WURB logging: Failed to set up logging: ' + str(e))
         
         # Define rotation log files for external log files.
         try:
-            if pathlib.Path('media/usb').exists():
+            if pathlib.Path('/media/usb').exists():
                 log_handler_ext = logging.handlers.RotatingFileHandler(str(self._external_log_path),
                                                                    maxBytes = 128*1024,
                                                                    backupCount = 10)

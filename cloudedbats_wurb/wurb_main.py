@@ -21,8 +21,8 @@ class WurbMain():
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._logger.info('')
         self._logger.info('Welcome to CloudedBats-WURB')
-        self._logger.info('http://cloudedbats.org')
-        self._logger.info('=========== ^ö^ ===========')
+        self._logger.info('Project page: http://cloudedbats.org')
+        self._logger.info('=============== ^ö^ ================')
         self._logger.info('')
         # Check input cards and write to log.
         self._logger.info('Connected sound cards for input streams:' )
@@ -32,6 +32,7 @@ class WurbMain():
                 self._logger.info('- ' + input_sound_card) 
         else:
             self._logger.error('- No connected sound cards found at startup.') 
+        self._logger.info('')
         # Suspend manin thread for logging.
         time.sleep(0.1)
         # Modules.
@@ -50,13 +51,14 @@ class WurbMain():
         self._settings.start()
         # State machine.
         self._state_machine = wurb_core.WurbStateMachine()
-        self._state_machine.set_states(self.define_state_machine())
+        self._state_machine.load_states(self.define_state_machine())
         self._state_machine.set_perform_action_function(self.perform_action)
+        self._state_machine.set_current_state('rec_auto')
         self._state_machine.start()
         # Sunset-sunrise. Singleton util.
         wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('wurb_timezone', 'UTC'))
         # GPS. Singleton util.
-        wurb_core.WurbGpsReader()
+        wurb_core.WurbGpsReader().start_gps()
         # Control-GPIO. Connected by callback.
         self._gpio_ctrl = wurb_raspberry_pi.ControlByGpio(callback_function=self.perform_event)
         # Control-mouse. Connected by callback.
@@ -65,7 +67,7 @@ class WurbMain():
         self._scheduler = wurb_core.WurbScheduler(callback_function=self.perform_event)
         # Sound stream parts:
         # - Source
-        if self._settings.get_value('recorder_pettersson_m500', 'False') == 'False':
+        if not self._settings.get_value('recorder_pettersson_m500', 'False'):
             # Generic USB microphones, including Pettersson M500-384.
             self._sound_source = wurb_core.SoundSource(callback_function=self.perform_event)
         else:
@@ -99,7 +101,7 @@ class WurbMain():
 
     def perform_action(self, action):
         """ Actions from state machine. """
-        self._logger.info('DEBUG: WurbMain action: ' + action)
+        self._logger.info('WURM Main: State machine action: ' + action)
         if action:
             if action == '':
                 pass
@@ -113,8 +115,11 @@ class WurbMain():
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
             #
-            elif action == 'led_warning_flash':
-                pass # TODO:
+            elif action == 'led_warning_flash_on':
+                print('TEST led_warning_flash_on') # TODO:
+            #
+            elif action == 'led_error_flash_on':
+                print('TEST led_error_flash_on') # TODO:
             #
             elif action == 'rpi_shutdown':
                 os.system('sudo shutdown -h now')
@@ -126,29 +131,26 @@ class WurbMain():
         """ """
         state_machine_data = [
             # 
-            {'states': ['idle'], 'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
-             'new_state': 'rec_on', 'actions': ['rec_start'] }, 
+            {'states': ['rec_auto', 'rec_off'], 'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
+             'new_state': 'rec_on', 'actions': ['rec_stop', 'rec_start'] },
             # 
-            {'states': ['rec_on'], 'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
-             'new_state': 'idle',  'actions': ['rec_stop'] }, 
+            {'states': ['rec_auto', 'rec_on'], 'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
+             'new_state': 'rec_off',  'actions': ['rec_stop'] }, 
             # 
-            {'states': ['idle'], 'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
-             'new_state': 'auto_rec_off', 'actions': ['auto_check_state'] }, 
+            {'states': ['rec_on', 'rec_off'], 'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
+             'new_state': 'rec_auto',  'actions': ['rec_stop', 'auto_check_state'] }, 
             # 
-            {'states': ['rec_on'], 'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
-             'new_state': 'auto_rec_off', 'actions': ['rec_stop', 'auto_check_state'] }, 
+            {'states': ['rec_auto'], 'events': ['scheduler_rec_on'], 
+             'new_state': 'rec_auto', 'actions': ['rec_start'] }, 
             # 
-            {'states': ['auto_rec_off'], 'events': ['scheduler_rec_on'], 
-             'new_state': 'auto_rec_on', 'actions': ['rec_start'] }, 
-            # 
-            {'states': ['auto_rec_on'], 'events': ['scheduler_rec_off'], 
-             'new_state': 'auto_rec_off', 'actions': ['rec_stop'] }, 
-            # 
-            {'states': ['rec_on'], 'events': ['rec_source_error', 'rec_target_error'], 
-             'new_state': 'idle', 'actions': ['rec_stop', 'led_warning_flash'] }, 
-            # 
-            {'states': ['auto_rec_on'], 'events': ['rec_source_error', 'rec_target_error'], 
-             'new_state': 'auto_rec_off', 'actions': ['rec_stop', 'led_warning_flash'] }, 
+            {'states': ['rec_auto'], 'events': ['scheduler_rec_off'], 
+             'new_state': 'rec_auto', 'actions': ['rec_stop'] }, 
+            # Test.
+            {'states': ['*'], 'events': ['rec_source_warning', 'rec_target_warning'], 
+             'new_state': '*', 'actions': ['led_warning_flash_on'] }, 
+            # Test.
+            {'states': ['*'], 'events': ['rec_source_error', 'rec_target_error'], 
+             'new_state': '*', 'actions': ['led_error_flash_on'] }, 
             # 
             {'states': ['*'], 'events': ['mouse_rpi_shutdown'], 
              'new_state': 'rpi_off', 'actions': ['rpi_shutdown', ''] }, 
@@ -162,7 +164,7 @@ if __name__ == "__main__":
     """ """
     wurb_main = WurbMain()
 
-# TODO: For development.
+# # TODO: For development.
 #     time.sleep(1.0)
 #     wurb_main.perform_event('test_rec_on')
 #     time.sleep(20.0) 

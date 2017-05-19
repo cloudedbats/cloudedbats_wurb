@@ -43,7 +43,24 @@ class WurbSettings(object):
         
     def get_value(self, key, default = ''):
         """ """
-        return self._wurb_config.get(key, default)
+        value = self._wurb_config.get(key, default)
+        # Check if int.
+        try:
+            return int(value)
+        except:
+            pass
+        # Check if float.
+        try:
+            return float(value)
+        except:
+            pass
+        # Check for boolean.
+        if value.lower() in ['true']:
+            return True
+        elif value.lower() in ['false']:
+            return False
+        # Must be string.
+        return value
     
     def _load_hw_config(self):
         """ """
