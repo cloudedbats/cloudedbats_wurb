@@ -232,7 +232,7 @@ class SoundProcess(wurb_core.SoundProcessBase):
                     self.push_item(time_and_data)
                     silent_counter = 0
                 else:
-                    if silent_counter < 6: # 1 sec.
+                    if silent_counter < 25: # >4 sec.
                         self.push_item(time_and_data)
                         silent_counter += 1
                     elif silent_counter < 60: # 10 sec.
@@ -241,7 +241,7 @@ class SoundProcess(wurb_core.SoundProcessBase):
                     else:
                         self.push_item(False)
                         silent_buffer.append(time_and_data)
-                        while len(silent_buffer) > 6: # 1 sec.
+                        while len(silent_buffer) > 25: # >4 sec.
                             silent_buffer.pop(0)
                     
     def _sound_analysis(self, time_and_data):

@@ -92,16 +92,19 @@ class WurbScheduler(object):
         gps_longitude = wurb_core.WurbGpsReader().get_longitude()
         #
         if gps_only:
+            self._logger.info('Scheduler: Waiting for GPS time and position.')
             while not (gps_local_time and gps_latitude and gps_longitude):
-                self._logger.info('Scheduler: Waiting for GPS time and position.')
                 #
                 if not self._thread_active:
+                    self._logger.info('Scheduler: Waiting for GPS was terminated.')
                     break
                 #
                 time.sleep(5.0)
                 gps_local_time = wurb_core.WurbGpsReader().get_time_local()
                 gps_latitude = wurb_core.WurbGpsReader().get_latitude()
                 gps_longitude = wurb_core.WurbGpsReader().get_longitude()
+            #
+            self._logger.info('Scheduler: Received GPS time and position.')            
         #
         if gps_local_time:
             self._local_time = gps_local_time
@@ -109,7 +112,6 @@ class WurbScheduler(object):
             self._latitude = gps_latitude
         if gps_longitude:
             self._longitude = gps_longitude
-        #
     
     def _calculate_start_and_stop_time(self):
         """ """

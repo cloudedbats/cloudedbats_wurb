@@ -4,6 +4,7 @@
 # Copyright (c) 2016-2017 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
+import sys
 import pathlib
 import shutil
 import logging
@@ -18,10 +19,11 @@ class WurbSettings(object):
         """ """
         self._logger = logging.getLogger('CloudedBatsWURB')
         # Internal.
-        self._internal_dir_path = pathlib.Path(internal_path)
-        self._hw_config_path = pathlib.Path(internal_path, 'wurb_hw_config.txt')
-        self._wifi_config_path = pathlib.Path(internal_path, 'wurb_wifi_config.txt')
-        self._user_settings_path = pathlib.Path(internal_path, 'wurb_user_settings.txt')
+        dir_path = pathlib.Path(sys.modules['__main__'].__file__).parents[0] # Same level as wurb_main.py.
+        self._internal_dir_path = pathlib.Path(dir_path, internal_path)
+        self._hw_config_path = pathlib.Path(self._internal_dir_path, 'wurb_hw_config.txt')
+        self._wifi_config_path = pathlib.Path(self._internal_dir_path, 'wurb_wifi_config.txt')
+        self._user_settings_path = pathlib.Path(self._internal_dir_path, 'wurb_user_settings.txt')
         # External.
         self._external_dir_path = pathlib.Path(external_path)
         self._external_hw_config_path = pathlib.Path(external_path, 'wurb_hw_config.txt')
@@ -97,7 +99,7 @@ class WurbSettings(object):
     def _load_settings(self, file_path):
         """ """
         if not file_path.exists():
-            self._logger.warning('Settings: File does not exists: ' + str(file_path))
+            self._logger.warning('Settings: File does not exists (default values are used): ' + str(file_path))
             return
         #
         with file_path.open('r') as infile:

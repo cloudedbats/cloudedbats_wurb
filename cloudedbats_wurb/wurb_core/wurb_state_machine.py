@@ -39,7 +39,7 @@ class WurbStateMachine(object):
     
     def event(self, event):
         """ """
-        self._logger.debug('State Machine: event: ' + event)
+        self._logger.debug('State Machine: Event added to queue: ' + event)
         if self._active:
             try:
                 self._event_queue.put(event, block=False)
@@ -75,8 +75,11 @@ class WurbStateMachine(object):
             if key in self._state_machine_dict:
                 # Check for exact match.
                 (new_state, actions) = self._state_machine_dict[key]
-                self._logger.error('State Machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
-                self._current_state = new_state
+                # Keep old state if *.
+                if new_state != '*':
+                    self._logger.error('State Machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
+                    self._current_state = new_state
+                #
                 for action in actions:
                     time.sleep(0.1) # Release thread.
                     try:

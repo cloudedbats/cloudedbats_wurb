@@ -101,7 +101,7 @@ class WurbMain():
 
     def perform_action(self, action):
         """ Actions from state machine. """
-        self._logger.info('WURM Main: State machine action: ' + action)
+        self._logger.info('WURB Main: State machine action: ' + action)
         if action:
             if action == '':
                 pass
@@ -118,8 +118,14 @@ class WurbMain():
             elif action == 'led_warning_flash_on':
                 print('TEST led_warning_flash_on') # TODO:
             #
-            elif action == 'led_error_flash_on':
-                print('TEST led_error_flash_on') # TODO:
+            elif action == 'led_error_flash_off':
+                print('TEST led_error_flash_off') # TODO:
+            #
+            elif action == 'led_warning_flash_on':
+                print('TEST led_warning_flash_on') # TODO:
+            #
+            elif action == 'led_error_flash_of':
+                print('TEST led_error_flash_off') # TODO:
             #
             elif action == 'rpi_shutdown':
                 os.system('sudo shutdown -h now')
@@ -132,28 +138,36 @@ class WurbMain():
         state_machine_data = [
             # 
             {'states': ['rec_auto', 'rec_off'], 'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
-             'new_state': 'rec_on', 'actions': ['rec_stop', 'rec_start'] },
+             'new_state': 'rec_on', 
+             'actions': ['rec_stop', 'rec_start', 'led_error_flash_off', 'led_warning_flash_off'] },
             # 
             {'states': ['rec_auto', 'rec_on'], 'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
-             'new_state': 'rec_off',  'actions': ['rec_stop'] }, 
+             'new_state': 'rec_off',  
+             'actions': ['rec_stop'] }, 
             # 
             {'states': ['rec_on', 'rec_off'], 'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
-             'new_state': 'rec_auto',  'actions': ['rec_stop', 'auto_check_state'] }, 
+             'new_state': 'rec_auto',  
+             'actions': ['rec_stop', 'auto_check_state'] }, 
             # 
             {'states': ['rec_auto'], 'events': ['scheduler_rec_on'], 
-             'new_state': 'rec_auto', 'actions': ['rec_start'] }, 
+             'new_state': 'rec_auto', 
+             'actions': ['rec_start', 'led_error_flash_off', 'led_warning_flash_off'] }, 
             # 
             {'states': ['rec_auto'], 'events': ['scheduler_rec_off'], 
-             'new_state': 'rec_auto', 'actions': ['rec_stop'] }, 
+             'new_state': 'rec_auto', 
+             'actions': ['rec_stop'] }, 
             # Test.
             {'states': ['*'], 'events': ['rec_source_warning', 'rec_target_warning'], 
-             'new_state': '*', 'actions': ['led_warning_flash_on'] }, 
+             'new_state': '*', 
+             'actions': ['led_warning_flash_on'] }, 
             # Test.
             {'states': ['*'], 'events': ['rec_source_error', 'rec_target_error'], 
-             'new_state': '*', 'actions': ['led_error_flash_on'] }, 
+             'new_state': '*', 
+             'actions': ['rec_stop', 'led_error_flash_on'] }, 
             # 
             {'states': ['*'], 'events': ['mouse_rpi_shutdown'], 
-             'new_state': 'rpi_off', 'actions': ['rpi_shutdown', ''] }, 
+             'new_state': 'rpi_off', 
+             'actions': ['rec_stop', 'rpi_shutdown', ''] }, 
             ]
         #
         return state_machine_data

@@ -4,10 +4,10 @@
 # Copyright (c) 2016-2017 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
+import sys
 import pathlib
 import logging
-import logging.handlers
+from logging import handlers
 
 class WurbLogging(object):
     """ """
@@ -23,7 +23,7 @@ class WurbLogging(object):
         log.setLevel(logging.DEBUG)
         #
         # Internal.
-        dir_path = os.path.dirname(os.path.abspath(__file__))
+        dir_path = pathlib.Path(sys.modules['__main__'].__file__).parents[0] # Same level as wurb_main.py.
         self._internal_dir_path = pathlib.Path(dir_path, internal_path)
         self._internal_log_path = pathlib.Path(self._internal_dir_path, 'wurb_log.txt')
         # External.
@@ -39,9 +39,9 @@ class WurbLogging(object):
         
         # Define rotation log files for internal log files.
         try:
-            log_handler = logging.handlers.RotatingFileHandler(str(self._internal_log_path),
-                                                               maxBytes = 128*1024,
-                                                               backupCount = 10)
+            log_handler = handlers.RotatingFileHandler(str(self._internal_log_path),
+                                                       maxBytes = 128*1024,
+                                                       backupCount = 10)
             log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
             log_handler.setLevel(logging.DEBUG)
             log.addHandler(log_handler)
@@ -51,9 +51,9 @@ class WurbLogging(object):
         # Define rotation log files for external log files.
         try:
             if pathlib.Path('/media/usb').exists():
-                log_handler_ext = logging.handlers.RotatingFileHandler(str(self._external_log_path),
-                                                                   maxBytes = 128*1024,
-                                                                   backupCount = 10)
+                log_handler_ext = handlers.RotatingFileHandler(str(self._external_log_path),
+                                                               maxBytes = 128*1024,
+                                                               backupCount = 10)
                 log_handler_ext.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
                 log_handler_ext.setLevel(logging.INFO)
                 log.addHandler(log_handler_ext)
