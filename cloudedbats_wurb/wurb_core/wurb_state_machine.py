@@ -39,12 +39,12 @@ class WurbStateMachine(object):
     
     def event(self, event):
         """ """
-        self._logger.debug('State Machine: Event added to queue: ' + event)
+        self._logger.debug('State machine: Event added to queue: ' + event)
         if self._active:
             try:
                 self._event_queue.put(event, block=False)
             except:
-                self._logger.error('State Machine: Event queue is full. Event dropped.')
+                self._logger.error('State machine: Event queue is full. Event dropped.')
     
     def start(self):
         """ """
@@ -69,7 +69,7 @@ class WurbStateMachine(object):
             except:
                 continue # No event available. (Don't lock thread.)
             #
-            self._logger.error('State Machine: Event executed: ' + event)                
+            self._logger.info('State machine: Event executed: ' + event)                
             key = (self._current_state, event)
             key_wildcard = ('*', event)
             if key in self._state_machine_dict:
@@ -77,7 +77,7 @@ class WurbStateMachine(object):
                 (new_state, actions) = self._state_machine_dict[key]
                 # Keep old state if *.
                 if new_state != '*':
-                    self._logger.error('State Machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
+                    self._logger.info('State machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
                     self._current_state = new_state
                 #
                 for action in actions:
@@ -85,7 +85,7 @@ class WurbStateMachine(object):
                     try:
                         self._action_queue.put(action, block=False)
                     except:
-                        self._logger.error('State Machine: Action queue is full. Action dropped.')
+                        self._logger.error('State machine: Action queue is full. Action dropped.')
             # Check for wildcards.
             elif key_wildcard in self._state_machine_dict:
                 #
@@ -96,13 +96,13 @@ class WurbStateMachine(object):
                     try:
                         self._action_queue.put(action, block=False)
                     except:
-                        self._logger.error('State Machine: Action queue is full. Action dropped.')
+                        self._logger.error('State machine: Action queue is full. Action dropped.')
             else:
-                self._logger.error('State Machine: Can not find state/event: ' + self._current_state + '/' + event)
-                    
+                self._logger.error('State machine: Can not find state/event: ' + self._current_state + '/' + event)
+    
     def _action_exec(self):
         """ """
-        self._logger.debug('State Machine: _action_exec.')
+        self._logger.debug('State machine: _action_exec.')
         while self._active:
             # Get from queue.
             try:

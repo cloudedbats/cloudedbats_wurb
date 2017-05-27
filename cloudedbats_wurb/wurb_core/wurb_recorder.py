@@ -122,10 +122,10 @@ class SoundSourceM500(SoundSource):
         """ """
         super(SoundSourceM500, self).__init__(callback_function)
         #
-        self._in_sampling_rate_hz = self._settings.get_value('recorder_', '500000') # in_sampling_rate_hz
-        self._in_adc_resolution_bits = self._settings.get_value('recorder_', '16') # in_adc_resolution_bits
+        self._in_sampling_rate_hz = self._settings.get_value('recorder_in_sampling_rate_hz', '500000') # in_sampling_rate_hz
+        self._in_adc_resolution_bits = self._settings.get_value('recorder_in_adc_resolution_bits', '16') # in_adc_resolution_bits
         self._in_width = int(self._in_adc_resolution_bits / 8) 
-        self._in_channels = self._settings.get_value('recorder_', '1') # in_channels
+        self._in_channels = self._settings.get_value('recorder_in_channels', '1') # in_channels
         
     def source_exec(self):
         """ For the Pettersson M500 microphone. """
@@ -299,10 +299,11 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._dir_path = self._settings.get_value('recorder_dir_path', '/media/usb/wurb1_rec')
         self._filename_lat_long = self._settings.get_value('recorder_filename_lat_long', 'N00.00E00.00')
         self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB1')
-        self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE384')
         if not self._settings.get_value('recorder_pettersson_m500', 'False'):
+            self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE384')
             self._out_sampling_rate_hz = self._settings.get_value('recorder_out_sampling_rate_hz', '38400')
         else:
+            self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE500')
             self._out_sampling_rate_hz = self._settings.get_value('recorder_out_sampling_rate_hz', '50000')
         self._adc_resolution = self._settings.get_value('recorder_adc_resolution', '16')
         self._width = int(self._adc_resolution / 8) 
@@ -420,17 +421,17 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._wave_file.setsampwidth(self._width)
         self._wave_file.setframerate(self._out_sampling_rate_hz)
         #
-        self._logger.info('Recorder: New wav file: ' + filename)
+        self._logger.info('Recorder: New wave file: ' + filename)
 
     def _close_file(self):
         """ """
-        self._logger.info('Recorder: Audio target Wave file closed.')
+        self._logger.info('Recorder: Audio target wave file closed.')
         if self._wave_file is not None:
             self._wave_file.close()
             self._wave_file = None 
         #    
         self._file_open = False
-    
+
 
 
 # === TEST ===    
@@ -439,6 +440,7 @@ if __name__ == "__main__":
     # Default configured for Pettersson M500-384.
     # Command to test M500-384: PYTHONPATH="." python3 wurb_core/wurb_recorder.py
     source = SoundSource() 
+    #
     # M500 as source. Must have sudo privileges for direct USB access.
     # Command to test M500: sudo PYTHONPATH="." python3 wurb_core/wurb_recorder.py
     # source = SoundSourceM500() 

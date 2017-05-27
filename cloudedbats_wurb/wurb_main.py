@@ -116,16 +116,19 @@ class WurbMain():
                 self._scheduler.check_state()
             #
             elif action == 'led_warning_flash_on':
-                print('TEST led_warning_flash_on') # TODO:
+                print('TEST led_warning_flash_on') # TODO: Not implemented.
+            #
+            elif action == 'led_warning_flash_off':
+                print('TEST led_warning_flash_off') # TODO: Not implemented.
+            #
+            elif action == 'led_error_flash_on':
+                print('TEST led_error_flash_on') # TODO: Not implemented.
             #
             elif action == 'led_error_flash_off':
-                print('TEST led_error_flash_off') # TODO:
+                print('TEST led_error_flash_off') # TODO: Not implemented.
             #
-            elif action == 'led_warning_flash_on':
-                print('TEST led_warning_flash_on') # TODO:
-            #
-            elif action == 'led_error_flash_of':
-                print('TEST led_error_flash_off') # TODO:
+            elif action == 'sleep_1s':
+                time.sleep(1)
             #
             elif action == 'rpi_shutdown':
                 os.system('sudo shutdown -h now')
@@ -139,7 +142,7 @@ class WurbMain():
             # 
             {'states': ['rec_auto', 'rec_off'], 'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
-             'actions': ['rec_stop', 'rec_start', 'led_error_flash_off', 'led_warning_flash_off'] },
+             'actions': ['rec_stop', 'rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] },
             # 
             {'states': ['rec_auto', 'rec_on'], 'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
              'new_state': 'rec_off',  
@@ -147,11 +150,11 @@ class WurbMain():
             # 
             {'states': ['rec_on', 'rec_off'], 'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
              'new_state': 'rec_auto',  
-             'actions': ['rec_stop', 'auto_check_state'] }, 
+             'actions': ['rec_stop', 'sleep_1s', 'auto_check_state'] }, 
             # 
             {'states': ['rec_auto'], 'events': ['scheduler_rec_on'], 
              'new_state': 'rec_auto', 
-             'actions': ['rec_start', 'led_error_flash_off', 'led_warning_flash_off'] }, 
+             'actions': ['rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] }, 
             # 
             {'states': ['rec_auto'], 'events': ['scheduler_rec_off'], 
              'new_state': 'rec_auto', 
@@ -159,11 +162,11 @@ class WurbMain():
             # Test.
             {'states': ['*'], 'events': ['rec_source_warning', 'rec_target_warning'], 
              'new_state': '*', 
-             'actions': ['led_warning_flash_on'] }, 
+             'actions': [] }, # 'led_warning_flash_on'] }, 
             # Test.
             {'states': ['*'], 'events': ['rec_source_error', 'rec_target_error'], 
              'new_state': '*', 
-             'actions': ['rec_stop', 'led_error_flash_on'] }, 
+             'actions': ['rec_stop'] }, # , 'led_error_flash_on'] }, 
             # 
             {'states': ['*'], 'events': ['mouse_rpi_shutdown'], 
              'new_state': 'rpi_off', 
