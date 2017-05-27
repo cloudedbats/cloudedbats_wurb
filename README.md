@@ -1,6 +1,7 @@
 # WURB - Wireless Ultrasonic Recorder for Bats
 
-This is the source code repository for the CloudedBats recording unit.
+This is a part of CloudedBats: http://cloudedbats.org
+and contains the source code repository for the CloudedBats recording unit.
 
 ### Functional features
 
@@ -52,3 +53,8 @@ The CloudedBats software:
 
 to be continued...
 
+## Contact
+
+Arnold Andreasson, Sweden.
+
+info@cloudedbats.org
