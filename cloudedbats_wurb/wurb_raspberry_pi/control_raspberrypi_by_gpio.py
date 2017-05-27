@@ -6,6 +6,7 @@
 
 import os
 import time
+import pathlib
 import logging.handlers
 # Check if GPIO is available.
 gpio_available = True
@@ -144,9 +145,14 @@ class ControlRaspberryPiByGpio(object):
         log = logging.getLogger('RaspberryPiControl')
         log.setLevel(logging.INFO)
         # Define rotation log files.
-        log_file_name = '../raspberry_pi_gpio_control_log.txt'
         dir_path = os.path.dirname(os.path.abspath(__file__))
-        log_handler = logging.handlers.RotatingFileHandler(os.path.join(dir_path, log_file_name),
+        log_file_dir = '../wurb_log_files'
+        log_file_name = 'raspberry_pi_gpio_control_log.txt'
+        log_file_path = pathlib.Path(dir_path, log_file_dir, log_file_name)
+        if not pathlib.Path(dir_path, log_file_dir).exists():
+            pathlib.Path(dir_path, log_file_dir).mkdir()
+        #
+        log_handler = logging.handlers.RotatingFileHandler(str(log_file_path),
                                                            maxBytes = 128*1024,
                                                            backupCount = 4)
         log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
