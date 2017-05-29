@@ -296,7 +296,7 @@ class SoundTarget(wurb_core.SoundTargetBase):
         super(SoundTarget, self).__init__()
         #
         # From settings. 
-        self._dir_path = self._settings.get_value('recorder_dir_path', '/media/usb/wurb1_rec')
+        self._dir_path = self._settings.get_value('recorder_dir_path', '/media/usb0/wurb1_rec')
         self._filename_lat_long = self._settings.get_value('recorder_filename_lat_long', 'N00.00E00.00')
         self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB1')
         if not self._settings.get_value('recorder_pettersson_m500', 'False'):

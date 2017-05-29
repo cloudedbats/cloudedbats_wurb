@@ -16,7 +16,7 @@ class WurbLogging(object):
 
     def setup(self,
               internal_path = 'wurb_log_files',
-              external_path = '/media/usb/cloudedbats_wurb/log_files'):
+              external_path = '/media/usb0/cloudedbats_wurb/log_files'):
         """ """
         log = logging.getLogger('CloudedBatsWURB')
 #        log.setLevel(logging.INFO)
@@ -33,7 +33,7 @@ class WurbLogging(object):
         # Log directories.
         if not self._internal_dir_path.exists():
             self._internal_dir_path.mkdir(parents=True)
-        if pathlib.Path('/media/usb').exists():
+        if pathlib.Path('/media/usb0').exists():
             if not self._external_dir_path.exists():
                 self._external_dir_path.mkdir(parents=True)
         
@@ -50,7 +50,7 @@ class WurbLogging(object):
         
         # Define rotation log files for external log files.
         try:
-            if pathlib.Path('/media/usb').exists():
+            if pathlib.Path('/media/usb0').exists():
                 log_handler_ext = handlers.RotatingFileHandler(str(self._external_log_path),
                                                                maxBytes = 128*1024,
                                                                backupCount = 10)
@@ -58,5 +58,5 @@ class WurbLogging(object):
                 log_handler_ext.setLevel(logging.INFO)
                 log.addHandler(log_handler_ext)
         except Exception as e:
-            print('WURB logging: Failed to set up logging on /media/usb: ' + str(e))
+            print('WURB logging: Failed to set up logging on /media/usb0: ' + str(e))
             

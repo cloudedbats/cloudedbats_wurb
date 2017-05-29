@@ -15,7 +15,7 @@ class WurbSettings(object):
     """ """
     def __init__(self,
                  internal_path = 'wurb_settings',
-                 external_path = '/media/usb/cloudedbats_wurb/settings'):
+                 external_path = '/media/usb0/cloudedbats_wurb/settings'):
         """ """
         self._logger = logging.getLogger('CloudedBatsWURB')
         # Internal.
