@@ -24,25 +24,33 @@ class WurbMain():
         self._logger.info('Project page: http://cloudedbats.org')
         self._logger.info('=============== ^ö^ ================')
         self._logger.info('')
-        # Check input cards and write to log.
-        self._logger.info('Connected sound cards for input streams:' )
-        input_sound_cards = wurb_core.SoundSource().get_device_list()
-        if input_sound_cards:
-            for input_sound_card in input_sound_cards:
-                self._logger.info('- ' + input_sound_card) 
-        else:
-            self._logger.error('- No connected sound cards found at startup.') 
-        self._logger.info('')
-        # Suspend manin thread for logging.
-        time.sleep(0.1)
-        # Modules.
-        self._settings = None
-        self._state_machine = None
-        self._scheduler = None
-        self._gpio_ctrl = None
-        self._mouse_ctrl = None
-        # Start all modules.
-        self.start()
+        
+        try:
+            # Check input cards and write to log.
+            self._logger.info('Connected sound cards for input streams:' )
+            input_sound_cards = wurb_core.SoundSource().get_device_list()
+            if input_sound_cards:
+                for input_sound_card in input_sound_cards:
+                    self._logger.info('- ' + input_sound_card) 
+            else:
+                self._logger.error('- No connected sound cards found at startup.') 
+            self._logger.info('')
+            # Suspend manin thread for logging.
+            time.sleep(0.1)
+            # Modules.
+            self._settings = None
+            self._state_machine = None
+            self._scheduler = None
+            self._gpio_ctrl = None
+            self._mouse_ctrl = None
+            # Start all modules.
+            self.start()
+        except Exception as e:
+            self._logger.error('')
+            self._logger.error('WURB Main: Exception during startup.')
+            self._logger.error('WURB Main: ' + str(e))
+            self._logger.error('')
+            raise
     
     def start(self):
         """ """
