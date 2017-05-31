@@ -87,7 +87,7 @@ class WurbSettings(object):
         # Copy new versions of config and settings from usb memory.
         if pathlib.Path(self._external_dir_path).exists():
             # wurb_hw_config.txt
-            if self._external_hw_config_file_path.exists():
+            if self._external_hw_config_path.exists():
                 shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
                 self._logger.info('Settings: "wurb_hw_config.txt" moved from USB memory.')
             # wurb_wifi_config.txt
@@ -96,7 +96,7 @@ class WurbSettings(object):
                 self._logger.info('Settings: "wurb_wifi_config.txt" moved from USB memory.')
             # wurb_settings.txt
             if self._external_user_settings_path.exists():
-                shutil.copy(str(self._external_user_settings_path), str(self._settings_path))
+                shutil.copy(str(self._external_user_settings_path), str(self._user_settings_path))
                 self._logger.info('Settings: "wurb_user_settings.txt" moved from USB memory.')
         
     def _load_settings(self, file_path):
