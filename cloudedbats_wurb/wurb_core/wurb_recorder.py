@@ -126,20 +126,23 @@ class SoundSourceM500(SoundSource):
         self._in_adc_resolution_bits = self._settings.get_value('recorder_in_adc_resolution_bits', '16') # in_adc_resolution_bits
         self._in_width = int(self._in_adc_resolution_bits / 8) 
         self._in_channels = self._settings.get_value('recorder_in_channels', '1') # in_channels
+        #
+        self._m500batmic = None
         
     def source_exec(self):
         """ For the Pettersson M500 microphone. """
         self._active = True
         #
         try:
-            self._m500batmic = wurb_core.PetterssonM500BatMic()
+            if not self._m500batmic:
+                self._m500batmic = wurb_core.PetterssonM500BatMic()
+            #
             self._stream_active = True
             #
             self._m500batmic.start_stream()
             self._m500batmic.led_on()            
 
         except Exception as e:
-            self._m500batmic = None
             self._logger.error('Recorder: Failed to create stream: ' + str(e))
             # Report to state machine.
             self._callback_function('rec_source_error')

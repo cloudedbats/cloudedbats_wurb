@@ -5,6 +5,7 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 from __future__ import unicode_literals
 
+import time
 import datetime
 import wave
 import usb.core
@@ -21,7 +22,15 @@ class PetterssonM500BatMic(object):
         Since pyusb access hardware directly 'udev rules' must be created. 
         During test it is possible to run it as a 'sudo' user. Example for
         execution of the test case at the end of this file:
-        > sudo python pettersson_m500_batmic.py 
+        > sudo python3 pettersson_m500_batmic.py 
+        
+        How to create an udev rule:
+          Go to: /etc/udev/rules.d/
+          and add a file called: pettersson_m500_batmic.rules
+          containing the following row:
+          SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", MODE="0664", GROUP="m500batmic"
+         
+          Then add the usergroup m500batmic to the user.
         
         More info about adding 'udev rules':
         http://stackoverflow.com/questions/3738173/why-does-pyusb-libusb-require-root-sudo-permissions-on-linux 
@@ -98,15 +107,16 @@ class PetterssonM500BatMic(object):
 if __name__ == "__main__":
     """ """
     # Set record length for this test.
-    rec_length_in_minutes = 0.5
+    rec_length_in_minutes = 0.1
     try:
         batmic = PetterssonM500BatMic()
-        # Create wave outfile.
-        wave_file = wave.open('pettersson-m500.wav', 'w')
-        wave_file.setnchannels(1) # 1 = Mono.
-        wave_file.setsampwidth(2) # 2 = 16 bits.
-        wave_file.setframerate(50000) # TE, Time Expansion 10x (sampling freq. 50kHz instead of 500kHz).
         try:
+            print('M500 rec. started (1).')
+            # Create wave outfile.
+            wave_file = wave.open('pettersson-m500(1).wav', 'w')
+            wave_file.setnchannels(1) # 1 = Mono.
+            wave_file.setsampwidth(2) # 2 = 16 bits.
+            wave_file.setframerate(50000) # TE, Time Expansion 10x (sampling freq. 50kHz instead of 500kHz).
             # Start M500 stream and LED.
             batmic.start_stream()
             batmic.led_on() # Alternative: batmic.led_flash()
@@ -121,7 +131,36 @@ if __name__ == "__main__":
             # Stop M500 and wave file.
             batmic.stop_stream()
             wave_file.close()
-            print('M500 rec. finished.')
+            print('M500 rec. finished (1).')
+            
+            time.sleep(5)
+            
+            # batmic = PetterssonM500BatMic()
+            batmic.stop_stream()
+                       
+            print('M500 rec. started (2).')
+            # Create wave outfile.
+            wave_file = wave.open('pettersson-m500(2).wav', 'w')
+            wave_file.setnchannels(1) # 1 = Mono.
+            wave_file.setsampwidth(2) # 2 = 16 bits.
+            wave_file.setframerate(50000) # TE, Time Expansion 10x (sampling freq. 50kHz instead of 500kHz).
+            # Start M500 stream and LED.
+            batmic.start_stream()
+            batmic.led_on() # Alternative: batmic.led_flash()
+            # Calculate end time.
+            end_time = datetime.datetime.now() + datetime.timedelta(minutes = rec_length_in_minutes)
+            print('M500 rec. started at: ' + str(datetime.datetime.now()) + 
+                  ', end time: ' + str(end_time))
+            # Write to wave file.
+            while datetime.datetime.now() < end_time: 
+                data = batmic.read_stream()
+                wave_file.writeframes(data.tostring())
+            # Stop M500 and wave file.
+            batmic.stop_stream()
+            wave_file.close()
+            print('M500 rec. finished (2).')
+
+
         finally:
             batmic.stop_stream()
     except Exception as e:
