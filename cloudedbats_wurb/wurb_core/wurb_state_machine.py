@@ -90,7 +90,10 @@ class WurbStateMachine(object):
             elif key_wildcard in self._state_machine_dict:
                 #
                 (new_state, actions) = self._state_machine_dict[key_wildcard]
-                self._current_state = new_state
+                # Keep old state if *.
+                if new_state != '*':
+                    self._logger.info('State machine: Old state: ' + self._current_state + '   New state: ' + new_state)                
+                    self._current_state = new_state
                 for action in actions:
                     time.sleep(0.1) # Release thread.
                     try:

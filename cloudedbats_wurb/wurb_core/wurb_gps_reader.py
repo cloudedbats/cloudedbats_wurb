@@ -162,7 +162,7 @@ class WurbGpsReader(object):
                             # Set Raspberry Pi time.
                             if self._set_rpi_time_from_gps:
                                 self._logger.info('GPS reader: Raspberry Pi date/time is set.')
-                                os.system('sudo date -s "' + self.gps_time + '"')
+                                os.system('sudo date --set "' + self.gps_time + '"')
                     else:
                         # Don't use the old fetched time.
                         self.gps_time = None
