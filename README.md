@@ -3,6 +3,8 @@
 This is a part of CloudedBats: http://cloudedbats.org
 and contains the source code repository for the CloudedBats recording unit.
 
+CloudedBats WURB is a bat detector for passive monitoring. It can be use either as a stand alone unit or can be used with internet connection. 
+
 ### Functional features
 
 - Support for full spectrum and time expanded recordings.
@@ -49,9 +51,7 @@ Hardware parts:
 
 The CloudedBats software:
 
-- ...
-
-to be continued...
+- Installation instruction: https://github.com/cloudedbats/cloudedbats_wurb/blob/master/doc/Software%20installation%20-%20WURB%20version%202017.1.md
 
 ## Contact
 
