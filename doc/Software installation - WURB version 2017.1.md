@@ -28,7 +28,7 @@ Start a terminal window on a computer in the local network. ('raspberrypi.local'
  
     passwd     
  
-(For example, chang password to 'cloudedbats'.)
+(For example, change password to 'cloudedbats'.)
  
 ### Basic Raspberry Pi configuration
  
@@ -146,8 +146,9 @@ Add this before "exit 0":
 - Connect power.
  
 ### Login and test
-ssh pi@wurb1.local
-pw: cloudedbats
+ 
+    ssh pi@wurb1.local
+    pw: cloudedbats
  
 ### Test GPS.
  
