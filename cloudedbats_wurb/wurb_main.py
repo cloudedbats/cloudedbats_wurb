@@ -120,6 +120,9 @@ class WurbMain():
             elif action == 'rec_stop':
                 self._sound_manager.stop_streaming() #(stop_immediate=True)
             #
+            elif action == 'rec_flush_file':
+                pass # TODO: Not implemented.
+            #
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
             #
@@ -150,7 +153,7 @@ class WurbMain():
             # 
             {'states': ['rec_auto', 'rec_off'], 'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
-             'actions': ['rec_stop', 'rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] },
+             'actions': ['rec_flush_file', 'rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] },
             # 
             {'states': ['rec_auto', 'rec_on'], 'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
              'new_state': 'rec_off',  
