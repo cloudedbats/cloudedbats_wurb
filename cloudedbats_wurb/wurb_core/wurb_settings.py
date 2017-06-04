@@ -22,12 +22,12 @@ class WurbSettings(object):
         dir_path = pathlib.Path(sys.modules['__main__'].__file__).parents[0] # Same level as wurb_main.py.
         self._internal_dir_path = pathlib.Path(dir_path, internal_path)
         self._hw_config_path = pathlib.Path(self._internal_dir_path, 'wurb_hw_config.txt')
-        self._wifi_config_path = pathlib.Path(self._internal_dir_path, 'wurb_wifi_config.txt')
+#         self._wifi_config_path = pathlib.Path(self._internal_dir_path, 'wurb_wifi_config.txt')
         self._user_settings_path = pathlib.Path(self._internal_dir_path, 'wurb_user_settings.txt')
         # External.
         self._external_dir_path = pathlib.Path(external_path)
         self._external_hw_config_path = pathlib.Path(external_path, 'wurb_hw_config.txt')
-        self._external_wifi_config_path = pathlib.Path(external_path, 'wurb_wifi_config.txt')
+#         self._external_wifi_config_path = pathlib.Path(external_path, 'wurb_wifi_config.txt')
         self._external_user_settings_path = pathlib.Path(external_path, 'wurb_user_settings.txt')
         #
         self._wurb_config = {}
@@ -36,7 +36,7 @@ class WurbSettings(object):
         """ """
         self._move_settings()
         self._load_hw_config()
-        self._load_wifi_config()
+#         self._load_wifi_config()
         self._load_user_settings()
         
     def stop(self):
@@ -69,10 +69,10 @@ class WurbSettings(object):
         self._logger.info('Settings: Loading configuration file: ' + str(self._hw_config_path))
         self._load_settings(self._hw_config_path)
         
-    def _load_wifi_config(self):
-        """ """
-        self._logger.info('Settings: Loading configuration file: ' + str(self._wifi_config_path))
-        self._load_settings(self._wifi_config_path)
+#     def _load_wifi_config(self):
+#         """ """
+#         self._logger.info('Settings: Loading configuration file: ' + str(self._wifi_config_path))
+#         self._load_settings(self._wifi_config_path)
         
     def _load_user_settings(self):
         """ """
@@ -90,10 +90,10 @@ class WurbSettings(object):
             if self._external_hw_config_path.exists():
                 shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
                 self._logger.info('Settings: "wurb_hw_config.txt" moved from USB memory.')
-            # wurb_wifi_config.txt
-            if self._external_wifi_config_path.exists():
-                shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
-                self._logger.info('Settings: "wurb_wifi_config.txt" moved from USB memory.')
+#             # wurb_wifi_config.txt
+#             if self._external_wifi_config_path.exists():
+#                 shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
+#                 self._logger.info('Settings: "wurb_wifi_config.txt" moved from USB memory.')
             # wurb_settings.txt
             if self._external_user_settings_path.exists():
                 shutil.copy(str(self._external_user_settings_path), str(self._user_settings_path))
