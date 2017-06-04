@@ -44,6 +44,8 @@ class ControlRaspberryPiByGpio(object):
         self._setup_gpio()
         #
         self.low_power_state = False
+        # Used to avoid immediate shutdown if switch in wrong position.
+        self.shutdown_switch_in_another_position_after_startup = False
         # Start the loop.
         self._active = True
         self._run_gpio_check()
@@ -103,19 +105,23 @@ class ControlRaspberryPiByGpio(object):
                 # Raspberry Pi shutdown.
                 if GPIO.input(self._gpio_pin_shutdown):
                     # High = inactive.
+                    self.shutdown_switch_in_another_position_after_startup = True
                     pass
                 else:
                     # Low = active.
-                    time.sleep(0.05) # Check if stable, not bouncing.
-                    if not GPIO.input(self._gpio_pin_shutdown):                        
-                        time.sleep(0.05) # Second check.
+                    # Don't perform immediate shutdown if switch was in wrong position
+                    # at startup.
+                    if self.shutdown_switch_in_another_position_after_startup == True:
+                        time.sleep(0.05) # Check if stable, not bouncing.
                         if not GPIO.input(self._gpio_pin_shutdown):                        
-                            # Perform action.
-                            try:
-                                self._logger.info('RPi GPIO control: Raspberry Pi shutdown.')
-                                os.system('sudo shutdown -h now')
-                            except:
-                                self._logger.error('RPi GPIO control: Shutdown failed.')
+                            time.sleep(0.05) # Second check.
+                            if not GPIO.input(self._gpio_pin_shutdown):                        
+                                # Perform action.
+                                try:
+                                    self._logger.info('RPi GPIO control: Raspberry Pi shutdown.')
+                                    os.system('sudo shutdown -h now')
+                                except:
+                                    self._logger.error('RPi GPIO control: Shutdown failed.')
                 
                 # Raspberry low power.
                 if GPIO.input(self._gpio_pin_low_power):
