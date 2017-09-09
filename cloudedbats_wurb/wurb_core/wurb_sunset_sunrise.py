@@ -11,11 +11,15 @@ import wurb_core
 
 @wurb_core.singleton
 class WurbSunsetSunrise(object):
-    """ Singleton class. Usage, see test example below. """
+    """ Converts latitide, longitude and date to formatted 
+        strings for sunset, dusk, dawn and sunrise. 
+        Singleton class. Cached results to avoid recalculations.
+        Calculations are done in wurb_core.lib.solartime.py
+        Usage, see test example below. """
     def __init__(self):
         """ """        
         self._logger = logging.getLogger('CloudedBatsWURB')
-        # Default timezone.
+        # Default timezone = UTC.
         self._timezone = pytz.timezone('UTC')
         #
         self._solartime_cache = {} # Key: (lat,long, date), value: solartime_dict
@@ -23,6 +27,7 @@ class WurbSunsetSunrise(object):
     def set_timezone(self, timezone = 'UTC'):
         """ """
         self._timezone = pytz.timezone(timezone)
+        self._solartime_cache = {}
 
     def get_solartime_dict(self, latitude = 0.0, 
                                  longitude = 0.0, 
@@ -43,6 +48,10 @@ class WurbSunsetSunrise(object):
 
     def _add_to_solartime_cache(self, latitude, longitude, selected_date):
         """ """
+        # Clear cache if used in continous mode for a long time.
+        if (len(self._solartime_cache) > 1000):
+            self._solartime_cache = {}
+        #
         sun = wurb_core.SolarTime()
         schedule = sun.sun_utc(selected_date, float(latitude), float(longitude))
         #
@@ -61,15 +70,16 @@ class WurbSunsetSunrise(object):
 ### Test. ###
 if __name__ == "__main__":
     """ """
-    solartime_dict = WurbSunsetSunrise().get_solartime_dict(57.6620, 12.6383, date.today())
-#     solartime_dict = WurbSunsetSunrise().get_solartime_dict(56.78, 12.34, date.today())
+    solartime = WurbSunsetSunrise()
+    solartime.set_timezone('Europe/Stockholm')
+    solartime_dict = solartime.get_solartime_dict(57.6620, 12.6383, date.today())
 
-    print('WurbSunsetSunrise dictionary: ' + str(solartime_dict))
-    print('WurbSunsetSunrise date:       ' + str(solartime_dict['date']))
-    print('WurbSunsetSunrise latitude:   ' + str(solartime_dict['latitude']))
-    print('WurbSunsetSunrise longitude:  ' + str(solartime_dict['longitude']))
-    print('WurbSunsetSunrise dawn:       ' + str(solartime_dict['dawn']))
-    print('WurbSunsetSunrise sunrise:    ' + str(solartime_dict['sunrise']))
-    print('WurbSunsetSunrise sunset:     ' + str(solartime_dict['sunset']))
-    print('WurbSunsetSunrise dusk:       ' + str(solartime_dict['dusk']))
+    print('Dictionary: ' + str(solartime_dict))
+    print('- Date:       ' + str(solartime_dict['date']))
+    print('- Latitude:   ' + str(solartime_dict['latitude']))
+    print('- Longitude:  ' + str(solartime_dict['longitude']))
+    print('- Sunset:     ' + str(solartime_dict['sunset']))
+    print('- Dusk:       ' + str(solartime_dict['dusk']))
+    print('- Dawn:       ' + str(solartime_dict['dawn']))
+    print('- Sunrise:    ' + str(solartime_dict['sunrise']))
 
