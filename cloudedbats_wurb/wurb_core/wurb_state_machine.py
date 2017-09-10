@@ -10,7 +10,10 @@ import threading
 import logging
 
 class WurbStateMachine(object):
-    """ """
+    """ State machine engine. Makes it easier to handle a system with a limited 
+        amount of valid states where state transitions can have many triggers. 
+        Also promotes a more modular design of the overall system. 
+        Two queues are used to avoid concurrency effects. """
     def __init__(self):
         """ """
         self._logger = logging.getLogger('CloudedBatsWURB')
@@ -26,16 +29,22 @@ class WurbStateMachine(object):
         self._action_thread = None
     
     def load_states(self, state_machine_data):
-        """ """
+        """ Example: state_machine_data =
+                [{'states': ['current_state_1', 'current_state_2', ], 
+                  'events': ['event_1', 'event_2', ], 
+                  'new_state': 'new_state', 
+                  'actions': ['action_1', 'action_2', ] },
+                ] """
+        self._state_machine_dict = {}
         self._prepare_state_machine_dict(state_machine_data)
+    
+    def set_perform_action_function(self, perform_action_function):
+        """ Define callback function for actions. """
+        self._perform_action_function = perform_action_function
     
     def set_current_state(self, current_state):
         """ """
         self._current_state = current_state
-    
-    def set_perform_action_function(self, perform_action_function):
-        """ """
-        self._perform_action_function = perform_action_function
     
     def event(self, event):
         """ """
@@ -47,7 +56,7 @@ class WurbStateMachine(object):
                 self._logger.error('State machine: Event queue is full. Event dropped.')
     
     def start(self):
-        """ """
+        """ Activates the two queues."""
         self._active = True
         # Start events in thread.
         self._target_thread = threading.Thread(target=self._event_exec, args=[])
@@ -57,15 +66,23 @@ class WurbStateMachine(object):
         self._target_thread.start()
     
     def stop(self):
-        """ """
+        """ Terminates the state machine. """
         self._active = False
+        # Queue triggers if waiting for timeout.
+        try:
+            self._event_queue.put(False)
+            self._action_queue.put(False)
+        except:
+            pass
     
     def _event_exec(self):
-        """ """
+        """ Running in thread for events. """
         while self._active:
             # Get from queue.
             try:
                 event = self._event_queue.get(timeout=1.0)
+                if event is False:
+                    break # Terminated.
             except:
                 continue # No event available. (Don't lock thread.)
             #
@@ -104,12 +121,14 @@ class WurbStateMachine(object):
                 self._logger.error('State machine: Can not find state/event: ' + self._current_state + '/' + event)
     
     def _action_exec(self):
-        """ """
+        """ Running in thread for actions. """
         self._logger.debug('State machine: _action_exec.')
         while self._active:
             # Get from queue.
             try:
                 action = self._action_queue.get(timeout=1.0)
+                if action is False:
+                    break # Terminated.
             except:
                 continue # No action available. (Don't lock thread.)
             #
@@ -118,9 +137,9 @@ class WurbStateMachine(object):
     def _prepare_state_machine_dict(self, state_machine_data):
         """ Converts:
             [{'states': ['init'], 'events': ['setup'], 'new_state': 'idle', 
-             'actions': ['load_config', 'load_settings',] },]
+             'actions': ['do_something', 'do_something_more',] },]
             into:
-            {(init, setup): (idle, ['load_config', 'load_settings',]),}
+            {(init, setup): (idle, ['do_something', 'do_something_more',]),}
         """
         for row_dict in state_machine_data:
             states = row_dict.get('states', '')
