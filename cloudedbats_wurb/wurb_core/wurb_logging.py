@@ -10,7 +10,23 @@ import logging
 from logging import handlers
 
 class WurbLogging(object):
-    """ """
+    """ Log module for the CloudedBats recording unit.
+        Two target log files are used. Both are implemented as rotation logs.
+        1. Internal log stored on the Raspberry Pi micro SD card.
+        2. External log stored on the USB memory for easy access when moving the 
+           USB memory to another computer. 
+           
+        Usage:
+            self._logger = logging.getLogger('CloudedBatsWURB')
+            self._logger.info('Info message.')
+            self._logger.warning('Warning message.')
+            self._logger.error('Error message.')
+            self._logger.debug('Debug message.')
+            try: ...
+            except Exception as e:
+                self._logger.error('Exception: ' + str(e))
+    """
+    
     def __init__(self):
         """ """
 
@@ -57,6 +73,10 @@ class WurbLogging(object):
                 log_handler_ext.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s : %(message)s '))
                 log_handler_ext.setLevel(logging.INFO)
                 log.addHandler(log_handler_ext)
+            else:
+                log.warning('')
+                log.warning('')
+                log.warning('Logging: Path /media/usb0 does not exist.')
         except Exception as e:
             print('WURB logging: Failed to set up logging on /media/usb0: ' + str(e))
             

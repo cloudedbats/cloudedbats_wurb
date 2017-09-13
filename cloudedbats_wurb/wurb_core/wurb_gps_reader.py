@@ -17,12 +17,12 @@ import wurb_core
 class WurbGpsReader(object):
     """ Singleton class for GPS time and position. 
         Usage:
-            WurbGpsReader().start_gps() # Activates GPS.
+            WurbGpsReader().start() # Activates GPS.
             time = WurbGpsReader().get_time_utc() 
             latitude = WurbGpsReader().get_latitude() 
             longitude = WurbGpsReader().get_longitude() 
             latlong = WurbGpsReader().get_latlong_string() 
-            WurbGpsReader().gps_stop() # DEactivates GPS.
+            WurbGpsReader().stop() # Deactivates GPS.
     """
     def __init__(self):
         """ """
@@ -39,11 +39,11 @@ class WurbGpsReader(object):
         # 
         self._debug = False
     
-    def start_gps(self):
+    def start(self):
         """ Start reading GPS stream. """
         self._gps_start()
     
-    def stop_gps(self):
+    def stop(self):
         """ Stop GPS stream. """
         self._active = False
     
@@ -194,7 +194,7 @@ class WurbGpsReader(object):
 if __name__ == "__main__":
     """ """
     gps_reader = WurbGpsReader()
-    gps_reader.start_gps()
+    gps_reader.start()
     gps_reader._debug = True # False
     #
     time.sleep(10)
@@ -204,4 +204,4 @@ if __name__ == "__main__":
     print('')
     time.sleep(10)
     #
-    gps_reader.stop_gps()
+    gps_reader.stop()
