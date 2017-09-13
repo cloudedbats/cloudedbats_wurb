@@ -8,8 +8,10 @@ import os
 import wurb_core
 
 if __name__ == "__main__":
-    """ """
-    wurb_app = wurb_core.WurbApplication()
+    """ To be used when using the internal SD card to record sound. 
+        For example when using 'Raspberry Pi Zero W' """
+        
+    wurb_app = wurb_core.WurbApplication(usb_memory_required=False)
 
 # # TODO: For development.
 #     time.sleep(1.0)
@@ -17,5 +19,6 @@ if __name__ == "__main__":
 #     time.sleep(20.0) 
 #     wurb_app.perform_event('test_rec_off')
 #     time.sleep(0.1)
-#     wurb_app.stop()
+
+    wurb_app.stop()
 

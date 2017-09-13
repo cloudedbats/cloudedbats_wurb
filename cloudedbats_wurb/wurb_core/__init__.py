@@ -25,3 +25,5 @@ from wurb_core.wurb_recorder import SoundSource
 from wurb_core.wurb_recorder import SoundSourceM500
 from wurb_core.wurb_recorder import SoundProcess
 from wurb_core.wurb_recorder import SoundTarget
+# Main app.
+from wurb_core.wurb_application import WurbApplication
