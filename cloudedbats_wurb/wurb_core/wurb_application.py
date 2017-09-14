@@ -17,7 +17,7 @@ class WurbApplication():
         """ """
         self._usb_required = usb_memory_required
         # Logging.
-        wurb_core.WurbLogging().setup()
+        wurb_core.WurbLogging().setup(usb_required = self._usb_required)
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._logger.info('')
         self._logger.info('Welcome to CloudedBats-WURB')
