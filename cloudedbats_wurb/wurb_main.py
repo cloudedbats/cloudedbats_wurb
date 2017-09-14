@@ -4,11 +4,12 @@
 # Copyright (c) 2016-2017 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
 import wurb_core
 
 if __name__ == "__main__":
-    """ """
+    """ Main module for CloudedBats WURB, 
+        Wireless Ultrasonic Recorder for Bats. """
+    
     wurb_app = wurb_core.WurbApplication()
 
 # # TODO: For development.
@@ -18,4 +19,4 @@ if __name__ == "__main__":
 #     wurb_app.perform_event('test_rec_off')
 #     time.sleep(0.1)
 #     wurb_app.stop()
-
+    wurb_app.stop()

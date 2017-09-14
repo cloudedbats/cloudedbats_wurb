@@ -133,20 +133,10 @@ class WurbApplication():
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
             #
-            elif action == 'led_warning_flash_on':
-                print('TEST led_warning_flash_on') # TODO: Not implemented.
-            #
-            elif action == 'led_warning_flash_off':
-                print('TEST led_warning_flash_off') # TODO: Not implemented.
-            #
-            elif action == 'led_error_flash_on':
-                print('TEST led_error_flash_on') # TODO: Not implemented.
-            #
-            elif action == 'led_error_flash_off':
-                print('TEST led_error_flash_off') # TODO: Not implemented.
-            #
             elif action == 'sleep_1s':
-                time.sleep(1)
+                time.sleep(1.0)
+            elif action == 'sleep_10s':
+                time.sleep(10.0)
             #
             elif action == 'rpi_shutdown':
                 os.system('sudo shutdown -h now')
@@ -164,7 +154,7 @@ class WurbApplication():
             {'states': ['rec_auto', 'rec_off'], 
              'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
-             'actions': ['rec_flush_file', 'rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] },
+             'actions': ['rec_flush_file', 'rec_start'] }, 
             # 
             {'states': ['rec_auto', 'rec_on'], 
              'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
@@ -179,7 +169,7 @@ class WurbApplication():
             {'states': ['rec_auto'], 
              'events': ['scheduler_rec_on'], 
              'new_state': 'rec_auto', 
-             'actions': ['rec_start'] }, # , 'led_error_flash_off', 'led_warning_flash_off'] }, 
+             'actions': ['rec_start'] }, 
             # 
             {'states': ['rec_auto'], 
              'events': ['scheduler_rec_off'], 
@@ -189,12 +179,12 @@ class WurbApplication():
             {'states': ['*'], 
              'events': ['rec_source_warning', 'rec_target_warning'], 
              'new_state': '*', 
-             'actions': [] }, # 'led_warning_flash_on'] }, 
+             'actions': [] }, 
             # Test.
             {'states': ['*'], 
              'events': ['rec_source_error', 'rec_target_error'], 
              'new_state': '*', 
-             'actions': ['rec_stop', 'sleep_1s', 'rpi_reboot'] }, # , 'led_error_flash_on'] }, 
+             'actions': ['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 
              'events': ['mouse_rpi_shutdown', 'no_usb_shutdown'], 

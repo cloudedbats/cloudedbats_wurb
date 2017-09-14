@@ -24,7 +24,7 @@ class PetterssonM500BatMic(object):
         execution of the test case at the end of this file:
         > sudo python3 pettersson_m500_batmic.py 
         
-        How to create an udev rule:
+        How to create an udev rule on a Raspberry Pi running Raspbian:
           Go to: /etc/udev/rules.d/
           and add a file called: pettersson_m500_batmic.rules
           containing the following row:
