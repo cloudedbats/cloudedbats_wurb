@@ -1,0 +1,38 @@
+#
+# User settings for CloudedBats WURB.
+# Project page: http://cloudedbats.org
+#
+# USB memory path: 
+#   cloudedbats_wurb/settings/user_settings.txt
+# Raspberry Pi external file path (= USB memory path): 
+#   /media/usb0/cloudedbats_wurb/settings/user_settings.txt
+# Raspberry Pi internal file path: 
+#   /user/pi/cloudedbats/cloudedbats_wurb/wurb_settings/user_settings.txt
+#
+
+# Hardware.
+recorder_pettersson_m500: False
+gps_reader_set_rpi_time_from_gps: True
+
+# Location.
+wurb_timezone: Europe/Stockholm
+scheduler_default_latitude: 57.66
+scheduler_default_longitude: 12.64
+
+# Recording.
+recorder_filename_prefix: WURB1
+recorder_dir_path: /media/usb0/wurb1_rec
+recorder_filename_lat_long: N57.66E12.64
+
+# Scheduler.
+scheduler_use_gps_only: True
+
+# New style:
+scheduler_event: rec_start/sunset/-10
+scheduler_event: rec_stop/sunrise/+10
+# Old style:
+scheduler_start_event: sunset # 
+scheduler_start_adjust: -10 # minutes
+scheduler_stop_event: sunrise
+scheduler_stop_adjust: 10 # minutes
+#
