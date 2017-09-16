@@ -12,7 +12,7 @@ import wurb_core
 
 @wurb_core.singleton
 class WurbSettings(object):
-    """ Used for configurations and settings. 
+    """ Used for config and settings. 
         There are three alternatives for settings:
         1. Use default values. Default values are defined in the modules where they are used. 
         2. Use the internally used file 'wurb_settings/user_settings.txt'.
@@ -100,17 +100,17 @@ class WurbSettings(object):
     
 #     def _load_hw_config(self):
 #         """ """
-#         self._logger.info('Settings: Loading configuration file: ' + str(self._hw_config_path))
+#         self._logger.info('Settings: Loading hardware config file: ' + str(self._hw_config_path))
 #         self._load_settings(self._hw_config_path)
         
 #     def _load_wifi_config(self):
 #         """ """
-#         self._logger.info('Settings: Loading configuration file: ' + str(self._wifi_config_path))
+#         self._logger.info('Settings: Loading hardware config file: ' + str(self._wifi_config_path))
 #         self._load_settings(self._wifi_config_path)
         
     def _load_user_settings(self):
         """ """
-        self._logger.info('Settings: Loading configuration file: ' + str(self._user_settings_path))
+        self._logger.info('Settings: Loading user settings file: ' + str(self._user_settings_path))
         self._load_settings(self._user_settings_path)
         
     def _copy_template_settings_to_external(self):
@@ -149,6 +149,7 @@ class WurbSettings(object):
             self._logger.warning('Settings: Config/settings file does not exists. Default values are used.')
             return
         #
+        self._logger.info('Settings: Used settings from file: ')
         with file_path.open('r') as infile:
             for row in infile:
                 key_value = row.strip()
@@ -167,7 +168,9 @@ class WurbSettings(object):
                             if key == 'scheduler_event':
                                 # Many rows with the same key are allowed.
                                 self._wurb_scheduler_events.append(value)
+                                self._logger.info('- Scheduler event: ' + str(value))
                             else:
                                 # Add to dict. Only one is allowed.
                                 self._wurb_config[key] = value
+                                self._logger.info('- Setting key: ' + str(key) + ' value: ' + str(value))
 

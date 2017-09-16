@@ -16,8 +16,8 @@ gps_reader_set_rpi_time_from_gps: True
 
 # Location.
 wurb_timezone: Europe/Stockholm
-scheduler_default_latitude: 57.66
-scheduler_default_longitude: 12.64
+default_latitude: 57.66
+default_longitude: 12.64
 
 # Recording.
 recorder_filename_prefix: WURB1
@@ -25,7 +25,8 @@ recorder_dir_path: /media/usb0/wurb1_rec
 recorder_filename_lat_long: N57.66E12.64
 
 # Scheduler.
-scheduler_use_gps_only: True
+scheduler_use_gps: False # True
+scheduler_wait_for_gps_at_startup: False
 
 # New style:
 scheduler_event: rec_start/sunset/-10

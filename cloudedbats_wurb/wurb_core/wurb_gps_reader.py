@@ -33,7 +33,7 @@ class WurbGpsReader(object):
         # Default port for GPSD.
         self._gpsd_port = self._settings.get_value('gps_reader_gpsd_port', '2947')
         # Default timezone.
-        self._timezone = pytz.timezone(self._settings.get_value('wurb_timezone', 'UTC'))
+        self._timezone = pytz.timezone(self._settings.get_value('timezone', 'UTC'))
         # Use GPS time for Raspberry Pi.
         self._set_rpi_time_from_gps = self._settings.get_value('gps_reader_set_rpi_time_from_gps', 'False')
         # 

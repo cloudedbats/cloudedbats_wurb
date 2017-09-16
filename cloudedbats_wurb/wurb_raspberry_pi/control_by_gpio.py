@@ -110,12 +110,15 @@ class ControlByGpio(object):
                     if self.rec_on_state:
                         # Rec on active.
                         self._fire_event('gpio_rec_on')
+                        self._logger.debug('GPIO control: Fire event: gpio_rec_on.')
                     elif self.rec_off_state:
                         # Rec off active.
                         self._fire_event('gpio_rec_off')
+                        self._logger.debug('GPIO control: Fire event: gpio_rec_off.')
                     else:
                         # Both inactive = Auto.
                         self._fire_event('gpio_rec_auto')
+                        self._logger.debug('GPIO control: Fire event: gpio_rec_auto.')
                 #                
                 old_rec_on_state = self.rec_on_state
                 old_rec_off_state = self.rec_off_state

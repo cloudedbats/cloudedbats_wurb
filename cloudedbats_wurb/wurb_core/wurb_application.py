@@ -67,7 +67,7 @@ class WurbApplication():
                              usb_required = self._usb_required)
         
         # Sunset-sunrise. Singleton util.
-        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('wurb_timezone', 'UTC'))
+        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('timezone', 'UTC'))
         
         # GPS. Singleton util.
         wurb_core.WurbGpsReader().start()
@@ -139,9 +139,11 @@ class WurbApplication():
                 time.sleep(10.0)
             #
             elif action == 'rpi_shutdown':
+                self.stop()
                 os.system('sudo shutdown -h now')
             #
             elif action == 'rpi_reboot':
+                self.stop()
                 os.system('sudo reboot')
             #    
             else:
@@ -183,7 +185,7 @@ class WurbApplication():
             # Test.
             {'states': ['*'], 
              'events': ['rec_source_error', 'rec_target_error'], 
-             'new_state': '*', 
+             'new_state': 'rpi_off', 
              'actions': ['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 

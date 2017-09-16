@@ -21,43 +21,19 @@ class WurbScheduler(object):
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._settings = wurb_core.WurbSettings()
         #
-#         self._local_time = None
-#         self._latitude = None
-#         self._longitude = None
+        self._local_time = datetime.datetime.now()
+        self._latitude = None
+        self._longitude = None
+        self._use_gps = False
+        self._wait_for_gps_at_startup = False
         #
-        self.read_settings()
+        self._scheduler_event_list = []
+        self._read_settings()
         #
         self._rec_on = False
         self._thread_active = False
         self.start()
         
-    def read_settings(self):
-        """ """
-        # Set 'scheduler_use_gps_only' to 'True' if not connected to WiFi or no real-time-clock
-        # is installed. Can also be set to true if default lat/long can't be used. 
-        self._gps_only = self._settings.get_value('scheduler_use_gps_only', 'False')
-        # Default for latitude/longitude in the decimal degree format.
-        self._latitude = float(self._settings.get_value('scheduler_default_latitude', '0.0'))
-        self._longitude = float(self._settings.get_value('scheduler_default_longitude', '0.0'))
-        #
-        scheduler_event_list = []
-        for event in self._settings.get_scheduler_events():
-            event_parts = event.split('/')
-            if len(event_parts) >= 2:
-                event_dict = {}
-                event_dict['state_machine_event'] = event_parts[0]
-                event_dict['time_event'] = event_parts[1]
-                if len(event_parts) >= 3:
-                    event_dict['time_adjust'] = event_parts[2]
-                #
-                scheduler_event_list.append(event_dict)
-        
-#         self._start_event_str = self._settings.get_value('scheduler_start_event', 'sunset')
-#         self._start_adjust_int = self._settings.get_value('scheduler_start_adjust', 0)
-#         self._stop_event_str = self._settings.get_value('scheduler_stop_event', 'sunrise')
-#         self._stop_adjust_int = self._settings.get_value('scheduler_stop_adjust', 0)
-
-
     def is_rec_on(self):
         """ """
         return self._rec_on
@@ -74,6 +50,12 @@ class WurbScheduler(object):
         """ """
         if self._thread_active:
             return
+        # Don't start if no events.
+        if len(self._scheduler_event_list) == 0:
+            return
+        #
+        self._read_gps_time_and_pos()
+        self._calculate_event_times()
         #
         try:
             self._thread_active = True
@@ -85,130 +67,129 @@ class WurbScheduler(object):
     def stop(self):
         """ """
         self._thread_active = False
+    
+    def _read_settings(self):
+        """ """
+        # GPS usage.
+        self._use_gps = self._settings.get_value('scheduler_use_gps', 'False')
+        self._wait_for_gps_at_startup = self._settings.get_value('scheduler_wait_for_gps_at_startup', 'False')
+        # Default for latitude/longitude in the decimal degree format.
+        self._latitude = float(self._settings.get_value('default_latitude', '0.0'))
+        self._longitude = float(self._settings.get_value('default_longitude', '0.0'))
         
+        # Read scheduling events from the settings file.
+        self._scheduler_event_list = []
+        for event in self._settings.get_scheduler_events():
+            event_parts = event.split('/')
+            if len(event_parts) >= 2:
+                event_dict = {}
+                event_dict['event_action'] = event_parts[0].strip()
+                event_dict['event_time_str'] = event_parts[1].strip()
+                if len(event_parts) >= 3:
+                    event_dict['event_adjust_str'] = event_parts[2].strip()
+                #
+                self._scheduler_event_list.append(event_dict)
+
+
+    def _read_gps_time_and_pos(self):
+        """ """
+        if self._use_gps:
+            # Get time and position from GPS. 
+            gps_local_time = wurb_core.WurbGpsReader().get_time_local()
+            gps_latitude = wurb_core.WurbGpsReader().get_latitude()
+            gps_longitude = wurb_core.WurbGpsReader().get_longitude()
+            #
+            if self._wait_for_gps_at_startup:
+                self._logger.info('Scheduler: Waiting for GPS time and position.')
+                while not (gps_local_time and gps_latitude and gps_longitude):
+                    #
+                    if not self._thread_active:
+                        self._logger.info('Scheduler: Waiting for GPS was terminated.')
+                        break
+                    #
+                    time.sleep(5.0)
+                    gps_local_time = wurb_core.WurbGpsReader().get_time_local()
+                    gps_latitude = wurb_core.WurbGpsReader().get_latitude()
+                    gps_longitude = wurb_core.WurbGpsReader().get_longitude()
+                #
+                self._logger.info('Scheduler: Received GPS time and position.')            
+            #
+            if gps_local_time:
+                self._local_time = gps_local_time
+            if gps_latitude:
+                self._latitude = gps_latitude
+            if gps_longitude:
+                self._longitude = gps_longitude
+
+    def _calculate_event_times(self):
+        """ """
+        # Get Sunset, sunrise, etc.
+        sunrise_dict = wurb_core.WurbSunsetSunrise().get_solartime_dict(
+                                                        self._latitude, 
+                                                        self._longitude, 
+                                                        self._local_time.date())
+        # 
+        self._logger.info('Scheduler: Date: ' + str(self._local_time.date()) + 
+                          ' latitude: ' + str(self._latitude) +
+                          ' longitude: ' + str(self._longitude))
+        self._logger.info('Scheduler: Sunset: ' + sunrise_dict.get('sunset', '-') + 
+                          ' dusk: ' + sunrise_dict.get('dusk', '-') + 
+                          ' dawn: ' + sunrise_dict.get('dawn', '-') + 
+                          ' sunrise: ' + sunrise_dict.get('sunrise', '-'))
+
+        # Calculate time for each event.
+        for event_dict in self._scheduler_event_list:            
+            try:
+                time_event_str = event_dict.get('event_time_str', None)
+                time_adjust_int = int(event_dict.get('event_adjust_str', '0'))
+                # Convert event strings.
+                if time_event_str == 'sunset':
+                    time_event_str = sunrise_dict.get('sunset', '18:00')
+                elif time_event_str == 'dusk':
+                    time_event_str = sunrise_dict.get('dusk', '18:20')
+                elif time_event_str == 'dawn':
+                    time_event_str = sunrise_dict.get('dawn', '05:40')
+                elif time_event_str == 'sunrise':
+                    time_event_str = sunrise_dict.get('sunrise', '06:00')
+                # Calculate start and stop time.
+                event_time = datetime.datetime.strptime(time_event_str, '%H:%M')
+                event_time += datetime.timedelta(minutes = time_adjust_int)
+                event_time = event_time.time()
+                #
+                event_dict['event_time'] = event_time
+                
+                self._logger.info('- Event: ' + event_dict.get('event_time_str', '') + 
+                                  ' Adjust: ' + str(time_adjust_int) + 
+                                  ' Calc.time: ' + str(event_time) + 
+                                  ' Action: ' + event_dict.get('event_action', '-'))
+            #
+            except Exception as e:
+                self._logger.error('Scheduler: Failed to calculate event times. Exception: ' + str(e))
+    
+                raise
+    
     def _scheduler_exec(self):
         """ """
-#         # Defaults.
-#         self._local_time = datetime.datetime.now()
-#         self._latitude = float(self._settings.get_value('scheduler_default_latitude', '0.0'))
-#         self._longitude = float(self._settings.get_value('scheduler_default_longitude', '0.0'))
-#         # GPS.
-#         gps_only = self._settings.get_value('scheduler_use_gps_only', 'False')
-#         self._gps_time_and_pos(gps_only)
-#         #
-#         start, stop = self._calculate_start_and_stop_time()
-#         self._start_time = start
-#         self._stop_time = stop
-#         #
-#         rec_on_old = self._rec_on
+        rec_on_old = self._rec_on
         while self._thread_active:
-#             self._check_if_rec_is_on()
-#             # Send event when changed state
-#             if rec_on_old != self._rec_on:
-#                 if self._callback_function:
-#                     if self._rec_on:
-#                         self._callback_function('scheduler_rec_on')
-#                     else:
-#                         self._callback_function('scheduler_rec_off')
-#                 #
-#                 rec_on_old = self._rec_on
-#             #
+            self._check_if_rec_is_on()
+            # Send event when changed state
+            if rec_on_old != self._rec_on:
+                if self._callback_function:
+                    if self._rec_on:
+                        self._callback_function('scheduler_rec_on')
+                    else:
+                        self._callback_function('scheduler_rec_off')
+                #
+                rec_on_old = self._rec_on
+            #
             time.sleep(1.0)
-
-    def _gps_time_and_pos(self, gps_only=False):
-        """ """
-#         # Get time and position from GPS. 
-#         gps_local_time = wurb_core.WurbGpsReader().get_time_local()
-#         gps_latitude = wurb_core.WurbGpsReader().get_latitude()
-#         gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-#         #
-#         if gps_only:
-#             self._logger.info('Scheduler: Waiting for GPS time and position.')
-#             while not (gps_local_time and gps_latitude and gps_longitude):
-#                 #
-#                 if not self._thread_active:
-#                     self._logger.info('Scheduler: Waiting for GPS was terminated.')
-#                     break
-#                 #
-#                 time.sleep(5.0)
-#                 gps_local_time = wurb_core.WurbGpsReader().get_time_local()
-#                 gps_latitude = wurb_core.WurbGpsReader().get_latitude()
-#                 gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-#             #
-#             self._logger.info('Scheduler: Received GPS time and position.')            
-#         #
-#         if gps_local_time:
-#             self._local_time = gps_local_time
-#         if gps_latitude:
-#             self._latitude = gps_latitude
-#         if gps_longitude:
-#             self._longitude = gps_longitude
-    
-    def _calculate_start_and_stop_time(self):
-        """ """
-#         try:
-#             # Read from config file.
-#             start_event_str = self._settings.get_value('scheduler_start_event', 'sunset')
-#             start_adjust_int = self._settings.get_value('scheduler_start_adjust', 0)
-#             stop_event_str = self._settings.get_value('scheduler_stop_event', 'sunrise')
-#             stop_adjust_int = self._settings.get_value('scheduler_stop_adjust', 0)
-#             # Get Sunset, sunrise, etc.
-#             sunrise_dict = wurb_core.WurbSunsetSunrise().get_solartime_dict(
-#                                                                     self._latitude, 
-#                                                                     self._longitude, 
-#                                                                     self._local_time.date())
-#             # 
-#             self._logger.info('Scheduler: Sunset: ' + sunrise_dict.get('sunset', '-') + 
-#                               ' dusk: ' + sunrise_dict.get('dusk', '-') + 
-#                               ' dawn: ' + sunrise_dict.get('dawn', '-') + 
-#                               ' sunrise: ' + sunrise_dict.get('sunrise', '-'))
-#             # Convert event strings.
-#             start_time_str = start_event_str # If event is time.
-#             stop_time_str = stop_event_str # If event is time.
-#             #
-#             if start_event_str == 'sunset':
-#                 start_time_str = sunrise_dict.get('sunset', '18:00')
-#             elif start_event_str == 'dusk':
-#                 start_time_str = sunrise_dict.get('dusk', '18:20')
-#             elif start_event_str == 'dawn':
-#                 start_time_str = sunrise_dict.get('dawn', '05:40')
-#             elif start_event_str == 'sunrise':
-#                 start_time_str = sunrise_dict.get('sunrise', '06:00')
-#             # Convert event strings.
-#             if stop_event_str == 'sunset':
-#                 stop_time_str = sunrise_dict.get('sunset', '18:00')
-#             elif stop_event_str == 'dusk':
-#                 stop_time_str = sunrise_dict.get('dusk', '18:20')
-#             elif stop_event_str == 'dawn':
-#                 stop_time_str = sunrise_dict.get('dawn', '05:40')
-#             elif stop_event_str == 'sunrise':
-#                 stop_time_str = sunrise_dict.get('sunrise', '06:00')
-#             # Calculate start and stop time.
-#             start = datetime.datetime.strptime(start_time_str, '%H:%M')
-#             start += datetime.timedelta(minutes = start_adjust_int)
-#             start = start.time()
-#             stop = datetime.datetime.strptime(stop_time_str, '%H:%M')
-#             stop += datetime.timedelta(minutes = stop_adjust_int)
-#             stop = stop.time()
-#             #
-#             self._logger.info('Scheduler: Date: ' + str(self._local_time.date()) + 
-#                               ' latitude: ' + str(self._latitude) +
-#                               ' longitude: ' + str(self._longitude))
-#             self._logger.info('Scheduler: Start event: ' + start_event_str + 
-#                               ' adjust: ' + str(start_adjust_int))
-#             self._logger.info('Scheduler: Stop event: ' + stop_event_str + 
-#                               ' adjust: ' + str(stop_adjust_int))
-#             self._logger.info('Scheduler: Calculated start time: ' + str(start) + 
-#                               ' stop time: ' + str(stop))
-#             #
-#             return start, stop
-#         #
-#         except Exception as e:
-#             self._logger.error('Scheduler: Failed to calculate start and stop time. ' + str(e))
-#             return None, None
 
     def _check_if_rec_is_on(self):
         """ """
+        
+        pass
+    
 #         try:
 #             # Prefere GPS time.
 #             gps_time = wurb_core.WurbGpsReader().get_time_local()
@@ -230,198 +211,3 @@ class WurbScheduler(object):
 #         #
 #         except Exception as e:
 #             self._logger.error('Scheduler: Exception: ' + str(e))
-
-
-
-################################################################################################3           
-################################################################################################3                       
-            
-# class WurbScheduler(object):
-#     """ """
-#     def __init__(self, callback_function=None):
-#         """ """
-#         self._callback_function = callback_function
-#         self._logger = logging.getLogger('CloudedBatsWURB')
-#         self._settings = wurb_core.WurbSettings()
-#         #
-#         self._local_time = None
-#         self._latitude = None
-#         self._longitude = None
-#         #
-#         self._rec_on = False
-#         self._thread_active = False
-#         self.start()
-#         
-#     def is_rec_on(self):
-#         """ """
-#         return self._rec_on
-# 
-#     def check_state(self):
-#         """ """
-#         if self._callback_function:
-#             if self._rec_on:
-#                 self._callback_function('scheduler_rec_on')
-#             else:
-#                 self._callback_function('scheduler_rec_off')
-# 
-#     def start(self):
-#         """ """
-#         if self._thread_active:
-#             return
-#         #
-#         try:
-#             self._thread_active = True
-#             self._scheduler_thread = threading.Thread(target = self._scheduler_exec, args = [])
-#             self._scheduler_thread.start()
-#         except Exception as e:
-#             self._logger.error('Scheduler: Failed to start the scheduler. ' + str(e))
-#         
-#     def stop(self):
-#         """ """
-#         self._thread_active = False
-#         
-#     def _scheduler_exec(self):
-#         """ """
-#         # Defaults.
-#         self._local_time = datetime.datetime.now()
-#         self._latitude = float(self._settings.get_value('scheduler_default_latitude', '0.0'))
-#         self._longitude = float(self._settings.get_value('scheduler_default_longitude', '0.0'))
-#         # GPS.
-#         gps_only = self._settings.get_value('scheduler_use_gps_only', 'False')
-#         self._gps_time_and_pos(gps_only)
-#         #
-#         start, stop = self._calculate_start_and_stop_time()
-#         self._start_time = start
-#         self._stop_time = stop
-#         #
-#         rec_on_old = self._rec_on
-#         while self._thread_active:
-#             self._check_if_rec_is_on()
-#             # Send event when changed state
-#             if rec_on_old != self._rec_on:
-#                 if self._callback_function:
-#                     if self._rec_on:
-#                         self._callback_function('scheduler_rec_on')
-#                     else:
-#                         self._callback_function('scheduler_rec_off')
-#                 #
-#                 rec_on_old = self._rec_on
-#             #
-#             time.sleep(1.0)
-# 
-#     def _gps_time_and_pos(self, gps_only=False):
-#         """ """
-#         # Get time and position from GPS. 
-#         gps_local_time = wurb_core.WurbGpsReader().get_time_local()
-#         gps_latitude = wurb_core.WurbGpsReader().get_latitude()
-#         gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-#         #
-#         if gps_only:
-#             self._logger.info('Scheduler: Waiting for GPS time and position.')
-#             while not (gps_local_time and gps_latitude and gps_longitude):
-#                 #
-#                 if not self._thread_active:
-#                     self._logger.info('Scheduler: Waiting for GPS was terminated.')
-#                     break
-#                 #
-#                 time.sleep(5.0)
-#                 gps_local_time = wurb_core.WurbGpsReader().get_time_local()
-#                 gps_latitude = wurb_core.WurbGpsReader().get_latitude()
-#                 gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-#             #
-#             self._logger.info('Scheduler: Received GPS time and position.')            
-#         #
-#         if gps_local_time:
-#             self._local_time = gps_local_time
-#         if gps_latitude:
-#             self._latitude = gps_latitude
-#         if gps_longitude:
-#             self._longitude = gps_longitude
-#     
-#     def _calculate_start_and_stop_time(self):
-#         """ """
-#         try:
-#             # Read from config file.
-#             start_event_str = self._settings.get_value('scheduler_start_event', 'sunset')
-#             start_adjust_int = self._settings.get_value('scheduler_start_adjust', 0)
-#             stop_event_str = self._settings.get_value('scheduler_stop_event', 'sunrise')
-#             stop_adjust_int = self._settings.get_value('scheduler_stop_adjust', 0)
-#             # Get Sunset, sunrise, etc.
-#             sunrise_dict = wurb_core.WurbSunsetSunrise().get_solartime_dict(
-#                                                                     self._latitude, 
-#                                                                     self._longitude, 
-#                                                                     self._local_time.date())
-#             # 
-#             self._logger.info('Scheduler: Sunset: ' + sunrise_dict.get('sunset', '-') + 
-#                               ' dusk: ' + sunrise_dict.get('dusk', '-') + 
-#                               ' dawn: ' + sunrise_dict.get('dawn', '-') + 
-#                               ' sunrise: ' + sunrise_dict.get('sunrise', '-'))
-#             # Convert event strings.
-#             start_time_str = start_event_str # If event is time.
-#             stop_time_str = stop_event_str # If event is time.
-#             #
-#             if start_event_str == 'sunset':
-#                 start_time_str = sunrise_dict.get('sunset', '18:00')
-#             elif start_event_str == 'dusk':
-#                 start_time_str = sunrise_dict.get('dusk', '18:20')
-#             elif start_event_str == 'dawn':
-#                 start_time_str = sunrise_dict.get('dawn', '05:40')
-#             elif start_event_str == 'sunrise':
-#                 start_time_str = sunrise_dict.get('sunrise', '06:00')
-#             # Convert event strings.
-#             if stop_event_str == 'sunset':
-#                 stop_time_str = sunrise_dict.get('sunset', '18:00')
-#             elif stop_event_str == 'dusk':
-#                 stop_time_str = sunrise_dict.get('dusk', '18:20')
-#             elif stop_event_str == 'dawn':
-#                 stop_time_str = sunrise_dict.get('dawn', '05:40')
-#             elif stop_event_str == 'sunrise':
-#                 stop_time_str = sunrise_dict.get('sunrise', '06:00')
-#             # Calculate start and stop time.
-#             start = datetime.datetime.strptime(start_time_str, '%H:%M')
-#             start += datetime.timedelta(minutes = start_adjust_int)
-#             start = start.time()
-#             stop = datetime.datetime.strptime(stop_time_str, '%H:%M')
-#             stop += datetime.timedelta(minutes = stop_adjust_int)
-#             stop = stop.time()
-#             #
-#             self._logger.info('Scheduler: Date: ' + str(self._local_time.date()) + 
-#                               ' latitude: ' + str(self._latitude) +
-#                               ' longitude: ' + str(self._longitude))
-#             self._logger.info('Scheduler: Start event: ' + start_event_str + 
-#                               ' adjust: ' + str(start_adjust_int))
-#             self._logger.info('Scheduler: Stop event: ' + stop_event_str + 
-#                               ' adjust: ' + str(stop_adjust_int))
-#             self._logger.info('Scheduler: Calculated start time: ' + str(start) + 
-#                               ' stop time: ' + str(stop))
-#             #
-#             return start, stop
-#         #
-#         except Exception as e:
-#             self._logger.error('Scheduler: Failed to calculate start and stop time. ' + str(e))
-#             return None, None
-# 
-#     def _check_if_rec_is_on(self):
-#         """ """
-#         try:
-#             # Prefere GPS time.
-#             gps_time = wurb_core.WurbGpsReader().get_time_local()
-#             if gps_time:
-#                 time_now = gps_time.time()
-#             else:
-#                 time_now = datetime.datetime.now().time()
-#             # Start and stop the same day.
-#             if self._start_time < self._stop_time:
-#                 if (time_now >= self._start_time) and (time_now <= self._stop_time):
-#                     self._rec_on = True
-#                 else: 
-#                     self._rec_on = False
-#             else: # Stop the day after.
-#                 if (time_now >= self._stop_time) and (time_now <= self._start_time):
-#                     self._rec_on = False
-#                 else: 
-#                     self._rec_on = True   
-#         #
-#         except Exception as e:
-#             self._logger.error('Scheduler: Exception: ' + str(e))
-#             
