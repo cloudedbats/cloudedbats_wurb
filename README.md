@@ -56,7 +56,7 @@ Hardware parts:
 
 The CloudedBats software:
 
-- Installation instruction: https://github.com/cloudedbats/cloudedbats_wurb/blob/master/doc/Software%20installation%20-%20WURB%20version%202017.1.md
+- Installation instruction: https://github.com/cloudedbats/cloudedbats_wurb/blob/master/doc/software_installation_cloudedbats-wurb.md
 
 ### Issues
 
