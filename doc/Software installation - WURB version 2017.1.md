@@ -1,8 +1,10 @@
 
 
-# Software installation - WURB version 2017.2
+# Software installation - WURB version 2017-sept.
  
 This guide describes how to install the CloudedBats-WURB, Wireless Ultrasonic Recorder for Bats, on a Raspberry Pi 3 B or Raspberry Pi Zero W. The user of this guide should be familiar with the Linux operating system and the Raspberry Pi computer. If not, please contact me to get a link to an already prepared disk image file for download. 
+
+The installation process is exactly the same for Raspberry Pi 3 B and Raspberry Pi Zero W. It is possible to move the Micro-SD card between the two models after the installation.
  
 ### Download Raspbian Stretch Light.
 
@@ -16,7 +18,7 @@ Follow the instructions and install the Raspbian Stretch Light image file (.img)
  
 ### SSH - activate
  
-It is possible to connect a monitor/TV via HDMI and keyboard/mouse via USB and perform the installation. Personally I prefer to use ssh from a terminal window on another computer in the same local network, and this guide describes that alternative.
+It is possible to connect a monitor/TV via HDMI and keyboard/mouse via USB to the Raspberry Pi and perform the installation. Personally I prefer to use ssh from a terminal window on another computer in the same local network, and this guide describes that alternative.
  
 For security reasons ssh is disabled by default. The easiest way to enable it is to connect the Micro-SD card to a computer and create an empty file named 'ssh'. More info here: https://www.raspberrypi.org/documentation/remote-access/ssh/
 
@@ -27,7 +29,7 @@ Start a terminal window on a computer in the local network. ('raspberrypi.local'
     ssh pi@raspberrypi.local
     (password: raspberry)
 
-Note: The ssh alternative is not possible on the Raspberry Py Zero because there is no Ethernet connection. Another option for this is to us an "USB to TTL Serial Cable / Console Cable for Raspberry Pi". 
+Note: The ssh alternative by using Ethernet is not possible on the Raspberry Py Zero because there is no Ethernet connection. Another option for this is to us an "USB to TTL Serial Cable / Console Cable for Raspberry Pi" . 
 
 ### Change password.
  
@@ -49,7 +51,7 @@ Change these parts:
  
     sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
  
-Add these lines. Note: Must be 'tab', not spaces, for indentation.
+Add these lines. **Note**: Must be 'tab', not spaces, for indentation.
  
     network={
     	ssid="<open-network-name>"
@@ -71,7 +73,7 @@ Add these lines. Note: Must be 'tab', not spaces, for indentation.
     ssh pi@wurb1.local
     pw: cloudedbats
  
-### Upgrade Raspbian Jessie Light
+### Upgrade Raspbian Stretch Light
  
     sudo apt-get update
     sudo apt-get upgrade
@@ -97,7 +99,7 @@ Set these values:
     GPSD_OPTIONS="-n"
     GPSD_SOCKET="/var/run/gpsd.sock"
 
-Note: Some USB connected GPS units uses another communication protocol. When using "GPS/Glonass Ublox-7 (Diymall Vk-172 vk 172)" I had to change DEVICE to "/dev/ttyACM0".
+**Note**: Some USB connected GPS units uses another communication protocol. When using "GPS/Glonass Ublox-7 (Diymall Vk-172 vk 172)" I had to change DEVICE to "/dev/ttyACM0".
 
 ### Config usbmount for automatic handling of USB memory/disk.
  
@@ -130,9 +132,11 @@ Add this line to the file:
     
     git clone https://github.com/cloudedbats/cloudedbats_wurb.git .
 
-Or to get the latests changes:
+Or to get the latests changes or a specific release:
 
     git clone -b development-branch https://github.com/cloudedbats/cloudedbats_wurb.git .
+    git clone -b 2017-sept https://github.com/cloudedbats/cloudedbats_wurb.git .
+    
  
 ### Automatic start for  the WURB software at startup
  
