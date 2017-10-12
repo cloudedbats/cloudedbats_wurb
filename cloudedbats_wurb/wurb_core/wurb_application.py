@@ -183,10 +183,10 @@ class WurbApplication():
             {'states': ['*'], 
              'events': ['rec_source_error', 'rec_target_error'], 
              'new_state': 'rpi_off', 
-             'actions': ['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
+             'actions': ['rec_stop'] },  #['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 
-             'events': ['mouse_rpi_shutdown', 'no_usb_detected_error'], 
+             'events': ['mouse_rpi_shutdown'], # ['mouse_rpi_shutdown', 'no_usb_detected_error'], 
              'new_state': 'rpi_off', 
              'actions': ['rec_stop', 'rpi_shutdown', ''] }, 
             ]
