@@ -127,9 +127,6 @@ class WurbApplication():
             elif action == 'rec_stop':
                 self._sound_manager.stop_streaming() #(stop_immediate=True)
             #
-            elif action == 'rec_flush_file':
-                pass # TODO: Not implemented.
-            #
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
             #
@@ -156,7 +153,7 @@ class WurbApplication():
             {'states': ['rec_auto', 'rec_off'], 
              'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
-             'actions': ['rec_flush_file', 'rec_start'] }, 
+             'actions': ['rec_stop', 'rec_start'] }, 
             # 
             {'states': ['rec_auto', 'rec_on'], 
              'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
@@ -189,7 +186,7 @@ class WurbApplication():
              'actions': ['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 
-             'events': ['mouse_rpi_shutdown', 'no_usb_shutdown'], 
+             'events': ['mouse_rpi_shutdown', 'no_usb_detected_error'], 
              'new_state': 'rpi_off', 
              'actions': ['rec_stop', 'rpi_shutdown', ''] }, 
             ]

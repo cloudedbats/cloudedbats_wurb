@@ -60,7 +60,7 @@ class WurbSettings(object):
             except:
                 # Not possible to write to USB memory.
                 if self._callback_function:
-                    self._callback_function('no_usb_shutdown')
+                    self._callback_function('no_usb_detected_error')
             # Copy user defined settings from USB to internal location.
             self._copy_settings_from_external()
             

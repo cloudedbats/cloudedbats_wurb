@@ -39,7 +39,7 @@ class WurbScheduler(object):
         return self._rec_on
 
     def check_state(self):
-        """ """
+        """ Used from the state machine to trigger callback. """
         if self._callback_function:
             if self._rec_on:
                 self._callback_function('scheduler_rec_on')
@@ -48,9 +48,10 @@ class WurbScheduler(object):
 
     def start(self):
         """ """
+        # Check if already started.
         if self._thread_active:
             return
-        # Don't start if no events.
+        # Don't start if events are missing.
         if len(self._scheduler_event_list) == 0:
             return
         #
@@ -157,33 +158,97 @@ class WurbScheduler(object):
                 event_time = event_time.time()
                 #
                 event_dict['event_time'] = event_time
-                
-                self._logger.info('- Event: ' + event_dict.get('event_time_str', '') + 
-                                  ' Adjust: ' + str(time_adjust_int) + 
-                                  ' Calc.time: ' + str(event_time) + 
-                                  ' Action: ' + event_dict.get('event_action', '-'))
             #
             except Exception as e:
                 self._logger.error('Scheduler: Failed to calculate event times. Exception: ' + str(e))
+        
+        # Sort list.
+        self._scheduler_event_list = sorted(self._scheduler_event_list, key=lambda k: k['event_time']) 
+        
+        for event_dict in self._scheduler_event_list:                 
+            self._logger.info(  '- Event: ' + event_dict.get('event_time_str', '') + 
+                                ' Adjust: ' + str(event_dict.get('event_adjust_str', '')) + 
+                                ' Calc.time: ' + str(event_dict.get('event_time', '')) + 
+                                ' Action: ' + event_dict.get('event_action', '-'))
     
-                raise
     
     def _scheduler_exec(self):
         """ """
-        rec_on_old = self._rec_on
+        # Loop over all rows to check last rec state and last time in list.
+        rec_on_old = None
+        max_event_time = None
+        for event_dict in self._scheduler_event_list:
+            max_event_time = event_dict.get('event_time', '-')
+            action = event_dict.get('event_action', '-')
+            if action == 'scheduler_rec_on':
+                self._rec_on = True
+            elif  action == 'scheduler_rec_off':
+                self._rec_on = False
+                 
+        # Loop over all rows once again to find current index.
+        last_used_index = None
+        time_now = datetime.datetime.now().time()
+        for index, event_dict in enumerate(self._scheduler_event_list):
+            event_time = event_dict.get('event_time', '')
+            # Save last used index.
+            if (event_time < time_now):
+                last_used_index = index
+                # Update rec state.
+                action = event_dict.get('event_action', '-')
+                if action == 'scheduler_rec_on':
+                    self._rec_on = True
+                elif  action == 'scheduler_rec_off':
+                    self._rec_on = False
+        
+        # Start main loop.        
         while self._thread_active:
-            self._check_if_rec_is_on()
-            # Send event when changed state
-            if rec_on_old != self._rec_on:
-                if self._callback_function:
-                    if self._rec_on:
-                        self._callback_function('scheduler_rec_on')
-                    else:
-                        self._callback_function('scheduler_rec_off')
-                #
-                rec_on_old = self._rec_on
+            time_now = datetime.datetime.now().time()
             #
-            time.sleep(1.0)
+            if (last_used_index == 0) and (time_now >= max_event_time):
+                # Wait until new day. 
+                pass
+            else:
+                # Loop from last index.
+                if last_used_index is None:
+                    remaining_list = self._scheduler_event_list
+                else:
+                    remaining_list = self._scheduler_event_list[(last_used_index):]
+                for index, event_dict in enumerate(remaining_list):
+                    event_time = event_dict.get('event_time', '')
+                    if (time_now > event_time) and (last_used_index != index):
+                        # Check if end of list.
+                        if index >= (len(self._scheduler_event_list) - 1):
+                            last_used_index = None
+                        else:
+                            last_used_index = index
+                        # Update rec state.
+                        action = event_dict.get('event_action', '-')
+                        if action == 'scheduler_rec_on':
+                            self._rec_on = True
+                        elif  action == 'scheduler_rec_off':
+                            self._rec_on = False
+                        else:
+                            # For valid actions defined in the state machine. Check wurb_application.py.
+                            self._callback_function(action)
+    
+                # Send event when state changed.
+                if rec_on_old != self._rec_on:
+                    if self._callback_function:
+                        if self._rec_on:
+                            self._callback_function('scheduler_rec_on')
+                        else:
+                            self._callback_function('scheduler_rec_off')
+                    #
+                    rec_on_old = self._rec_on
+
+            # Recalculate event times.
+            ### TODO: At midnight...
+                
+            # Sleep, but exit earlier if externally termined.
+            for i in range(10):
+                if not self._thread_active:
+                    return # Terminate thread.
+                time.sleep(1.0)
 
     def _check_if_rec_is_on(self):
         """ """
