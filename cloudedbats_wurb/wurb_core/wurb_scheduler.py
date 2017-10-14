@@ -175,7 +175,6 @@ class WurbScheduler(object):
     def _scheduler_exec(self):
         """ """
         # Loop over all rows to check last rec state and last time in list.
-        rec_on_old = None
         max_event_time = None
         for event_dict in self._scheduler_event_list:
             max_event_time = event_dict.get('event_time', '-')
@@ -186,7 +185,8 @@ class WurbScheduler(object):
                 self._rec_on = False
                  
         # Loop over all rows once again to find current index.
-        last_used_index = None
+        last_used_index = -1
+        wait_for_next_day = False
         time_now = datetime.datetime.now().time()
         for index, event_dict in enumerate(self._scheduler_event_list):
             event_time = event_dict.get('event_time', '')
@@ -199,37 +199,49 @@ class WurbScheduler(object):
                     self._rec_on = True
                 elif  action == 'scheduler_rec_off':
                     self._rec_on = False
+        # Check if end of list.
+        if last_used_index >= (len(self._scheduler_event_list) - 1):
+            last_used_index = -1
+            wait_for_next_day = True
         
+        # Send event when state changed.
+        rec_on_old = self._rec_on        
+        if self._callback_function:
+            if self._rec_on:
+                self._callback_function('scheduler_rec_on')
+            else:
+                self._callback_function('scheduler_rec_off')
+
         # Start main loop.        
         while self._thread_active:
             time_now = datetime.datetime.now().time()
             #
-            if (last_used_index == 0) and (time_now >= max_event_time):
+            if wait_for_next_day and (time_now >= max_event_time):
                 # Wait until new day. 
                 pass
             else:
+                wait_for_next_day = False
                 # Loop from last index.
-                if last_used_index is None:
-                    remaining_list = self._scheduler_event_list
-                else:
-                    remaining_list = self._scheduler_event_list[(last_used_index):]
-                for index, event_dict in enumerate(remaining_list):
-                    event_time = event_dict.get('event_time', '')
-                    if (time_now > event_time) and (last_used_index != index):
-                        # Check if end of list.
-                        if index >= (len(self._scheduler_event_list) - 1):
-                            last_used_index = None
-                        else:
-                            last_used_index = index
-                        # Update rec state.
-                        action = event_dict.get('event_action', '-')
-                        if action == 'scheduler_rec_on':
-                            self._rec_on = True
-                        elif  action == 'scheduler_rec_off':
-                            self._rec_on = False
-                        else:
-                            # For valid actions defined in the state machine. Check wurb_application.py.
-                            self._callback_function(action)
+                for index, event_dict in enumerate(self._scheduler_event_list):
+                    if index > last_used_index:
+                        event_time = event_dict.get('event_time', '')
+                        if time_now > event_time:
+                            # Check if end of list.
+                            if index >= (len(self._scheduler_event_list) - 1):
+                                last_used_index = -1
+                                wait_for_next_day = True
+                            else:
+                                last_used_index = index
+                            # Update rec state.
+                            action = event_dict.get('event_action', '-')
+                            if action == 'scheduler_rec_on':
+                                self._rec_on = True
+                            elif  action == 'scheduler_rec_off':
+                                self._rec_on = False
+                            else:
+                                # For valid actions defined in the state machine. Check wurb_application.py.
+                                if self._callback_function:
+                                    self._callback_function(action)
     
                 # Send event when state changed.
                 if rec_on_old != self._rec_on:

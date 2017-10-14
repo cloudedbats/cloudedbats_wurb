@@ -15,14 +15,9 @@ recorder_pettersson_m500: False
 gps_reader_set_rpi_time_from_gps: True
 
 # Location.
-wurb_timezone: Europe/Stockholm
+timezone: Europe/Stockholm
 default_latitude: 57.00
 default_longitude: 12.00
-
-# Recording.
-recorder_filename_prefix: WURB1
-recorder_dir_path: /media/usb0/wurb1_rec
-recorder_filename_lat_long: N57.00E12.00
 
 # Scheduler.
 scheduler_use_gps: False # True
@@ -30,3 +25,8 @@ scheduler_wait_for_gps_at_startup: False
 # Scheduler events:
 scheduler_event: scheduler_rec_on/sunset/-10
 scheduler_event: scheduler_rec_off/sunrise/+10
+
+# Recording.
+recorder_filename_prefix: WURB1
+recorder_dir_path: /media/usb0/wurb1_rec
+recorder_filename_lat_long: N57.00E12.00

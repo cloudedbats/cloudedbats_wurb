@@ -27,14 +27,14 @@ class WurbApplication():
         
         try:
             # Check input cards and write to log.
-            self._logger.info('Connected sound cards for input streams:' )
-            input_sound_cards = wurb_core.SoundSource().get_device_list()
-            if input_sound_cards:
-                for input_sound_card in input_sound_cards:
-                    self._logger.info('- ' + input_sound_card) 
-            else:
-                self._logger.error('- No connected sound cards found at startup.') 
-            self._logger.info('')
+#             self._logger.info('Connected sound cards for input streams:' )
+#             input_sound_cards = wurb_core.SoundSource().get_device_list()
+#             if input_sound_cards:
+#                 for input_sound_card in input_sound_cards:
+#                     self._logger.info('- ' + input_sound_card) 
+#             else:
+#                 self._logger.error('- No connected sound cards found at startup.') 
+#             self._logger.info('')
             # Suspend main thread for logging.
             time.sleep(0.1)
             # Modules.
@@ -72,14 +72,6 @@ class WurbApplication():
         # GPS. Singleton util.
         wurb_core.WurbGpsReader().start()
         
-        # Control-GPIO. Connected by callback.
-        self._gpio_ctrl = wurb_raspberry_pi.ControlByGpio(callback_function=self.perform_event)
-        # Control-mouse. Connected by callback.
-        self._mouse_ctrl = wurb_raspberry_pi.ControlByMouse(callback_function=self.perform_event)
-        
-        # Control-scheduler. Connected by callback.
-        self._scheduler = wurb_core.WurbScheduler(callback_function=self.perform_event)
-        
         # Sound stream parts:
         # - Source
         if not self._settings.get_value('recorder_pettersson_m500', 'False'):
@@ -97,12 +89,21 @@ class WurbApplication():
                                     self._sound_source, 
                                     self._sound_process, 
                                     self._sound_target,
-                                    source_queue_max=100)
+                                    source_queue_max=1000)
+        
+        # Control-GPIO. Connected by callback.
+        self._gpio_ctrl = wurb_raspberry_pi.ControlByGpio(callback_function=self.perform_event)
+        # Control-mouse. Connected by callback.
+        self._mouse_ctrl = wurb_raspberry_pi.ControlByMouse(callback_function=self.perform_event)
+        
+        # Control-scheduler. Connected by callback.
+        self._scheduler = wurb_core.WurbScheduler(callback_function=self.perform_event)
     
     def stop(self):
         """ """
         # Stop modules.
         wurb_core.WurbGpsReader().stop()
+        if self._sound_manager: self._sound_manager.stop_streaming(stop_immediate=True)
         if self._gpio_ctrl: self._gpio_ctrl.stop()
         if self._mouse_ctrl: self._mouse_ctrl.stop()
         if self._scheduler: self._scheduler.stop()

@@ -4,7 +4,6 @@
 # Copyright (c) 2016-2017 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
 import time
 import logging
 import threading
@@ -30,8 +29,8 @@ class ControlByGpio(object):
             self._logger.error('GPIO control: RaspberryPi-GPIO not available.')
             return
         #
-        self._gpio_pin_rec_on = 37 # GPIO 26
-        self._gpio_pin_rec_off = 38 # GPIO 20
+        self._gpio_pin_rec_on = 37 # '#37 (GPIO 26)'
+        self._gpio_pin_rec_off = 38 # '#38 (GPIO 20)'
         self._setup_gpio()
         #
         self._active = True

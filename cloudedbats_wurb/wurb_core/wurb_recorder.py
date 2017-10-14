@@ -23,10 +23,14 @@ class SoundSource(wurb_core.SoundSourceBase):
         self._settings = wurb_core.WurbSettings()
         #
         super(SoundSource, self).__init__()
+        #
+        self._pyaudio = pyaudio.PyAudio()
+        self.read_settings()
+        self._setup_pyaudio()
+        #
         
-    def source_exec(self):
+    def read_settings(self):
         """ Called from base class. """
- 
         # From settings. Defaults for Pettersson M500-384.
         self._in_sampling_rate_hz = self._settings.get_value('recorder_in_sampling_rate_hz', '384000') # in_sampling_rate_hz
         self._in_adc_resolution_bits = self._settings.get_value('recorder_in_adc_resolution_bits', '16') # in_adc_resolution_bits
@@ -40,25 +44,22 @@ class SoundSource(wurb_core.SoundSourceBase):
         else:
             self._in_device_index = in_device_index
         #
-        self._active = True
-        #
-        buffer_size = self._settings.get_value('recorder_in_buffer_size', 1024 * 64) # 2**16
-        self._logger.info('Recorder: Buffer size: ' + str(buffer_size))
- 
+        self._buffer_size = self._settings.get_value('recorder_in_buffer_size', 1024 * 64) # 2**16
+        self._logger.info('Recorder: Buffer size: ' + str(self._buffer_size))
+         
+    def _setup_pyaudio(self):
+        """ """
+        # Initiate PyAudio.
         try:
-            self._pyaudio = pyaudio.PyAudio()
-            self._stream_active = True
-            self._stream = None
-            #
             self._stream = self._pyaudio.open(
                 format = self._pyaudio.get_format_from_width(self._in_width),
                 channels = self._in_channels,
                 rate = self._in_sampling_rate_hz,
-                frames_per_buffer = buffer_size,
+                frames_per_buffer = self._buffer_size,
                 input = True,
                 output = False,
                 input_device_index = self._in_device_index,
-                start = True,
+                start = False,
             )
         except Exception as e:
             self._stream = None
@@ -66,14 +67,29 @@ class SoundSource(wurb_core.SoundSourceBase):
             # Report to state machine.
             self._callback_function('rec_source_error')
             return
-        # Main source loop.
-        data = self._stream.read(buffer_size) #, exception_on_overflow=False)
-        while self._active and data:
-#                 raw_data  = np.fromstring(data, dtype=np.int16) # To ndarray.
-#                 self.push_item(raw_data)
-            self.push_item((time.time(), data)) # Push time and data buffer.
-            data = self._stream.read(buffer_size) #, exception_on_overflow=False)
+
+    def source_exec(self):
+        """ Called from base class. """
+        
+        if self._stream is None:
+            self._setup_pyaudio()
         #
+        self._active = True
+        self._stream_active = True
+        self._stream.start_stream()
+        
+        # Main source loop.
+        try:
+            data = self._stream.read(self._buffer_size) #, exception_on_overflow=False)
+            while self._active and data:
+    #                 raw_data  = np.fromstring(data, dtype=np.int16) # To ndarray.
+    #                 self.push_item(raw_data)
+                self.push_item((time.time(), data)) # Push time and data buffer.
+                data = self._stream.read(self._buffer_size) #, exception_on_overflow=False)
+        except Exception as e:
+            self._logger.error('Recorder: Failed to read stream: ' + str(e))
+
+        # Main loop terminated.
         self._logger.debug('Source: Source terminated.')
         self.push_item(None)
         #
@@ -84,12 +100,12 @@ class SoundSource(wurb_core.SoundSourceBase):
             except: 
                 self._logger.error('Recorder: Pyaudio stream stop/close failed.')
             self._stream = None
-        #
-        if self._pyaudio is not None:
-            try: self._pyaudio.terminate()
-            except: 
-                self._logger.error('Recorder: Pyaudio terminate failed.')
-            self._pyaudio = None
+#         #
+#         if self._pyaudio is not None:
+#             try: self._pyaudio.terminate()
+#             except: 
+#                 self._logger.error('Recorder: Pyaudio terminate failed.')
+#             self._pyaudio = None
 
     # Sound source utils.   
     def get_device_list(self):
@@ -311,10 +327,10 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._adc_resolution = self._settings.get_value('recorder_adc_resolution', '16')
         self._width = int(self._adc_resolution / 8) 
         self._channels = self._settings.get_value('recorder_out_channels', '1') # 1 = mono, 2 = stereo.
-        self._max_record_length_s = self._settings.get_value('recorder_max_record_length_s', '300')
+        self._max_record_length_s = self._settings.get_value('recorder_max_record_length_s', '60')
         #
-        self._wave_file = None
-        self._file_open = False
+#         self._wave_file = None
+#         self._file_open = False
         self._total_start_time = None
         self._internal_buffer_list = []
         #
@@ -329,6 +345,8 @@ class SoundTarget(wurb_core.SoundTargetBase):
         item_list = []
         item_list_max = 10
         #
+        wave_file_writer = None
+        #
         try:
             while self._active:
                 item = self.pull_item()
@@ -337,21 +355,27 @@ class SoundTarget(wurb_core.SoundTargetBase):
                     self._active = False # Terminated by previous step.                 
                 # False indicates silent part. Close file until not silent. 
                 elif item is False:
-                    if self._wave_file:
+#                     if self._wave_file:
+                    if wave_file_writer:
                         # Flush buffer.
                         joined_items = b''.join(item_list)
-                        self._wave_file.writeframes(joined_items)
+#                         self._wave_file.writeframes(joined_items)
+                        wave_file_writer.write(joined_items)
                         item_list = []
                         # Close.
-                        self._close_file()
+#                         self._close_file()
+                        wave_file_writer.close()
+                        wave_file_writer = None
                 # Normal case, write frames.
                 else:
                     rec_time, data = item
                     
                     item_list.append(data)
                     # Open file if first after silent part.
-                    if not self._file_open:
-                        self._open_file()
+#                     if not self._file_open:
+                    if not wave_file_writer:
+#                         self._open_file()
+                        wave_file_writer = WaveFileWriter(self)
                         if rec_start_time is None:
                             rec_start_time = rec_time
                         else:
@@ -359,44 +383,60 @@ class SoundTarget(wurb_core.SoundTargetBase):
                     #
                     if len(item_list) >= item_list_max:
                         # Flush buffer.
-                        if self._wave_file:
+#                         if self._wave_file:
+                        if wave_file_writer:
                             joined_items = b''.join(item_list)
-                            self._wave_file.writeframes(joined_items)
+#                             self._wave_file.writeframes(joined_items)
+                            wave_file_writer.write(joined_items)
                             item_list = []
                 # Check if max rec length was reached.
                 if rec_start_time:
                     if (rec_start_time + self._max_record_length_s) < rec_time:
                         # Flush buffer.
-                        if self._wave_file:
+#                         if self._wave_file:
+                        if wave_file_writer:
                             # Flush buffer.
                             joined_items = b''.join(item_list)
-                            self._wave_file.writeframes(joined_items)
+#                             self._wave_file.writeframes(joined_items)
+                            wave_file_writer.write(joined_items)
                             item_list = []
                             # Close.
-                            self._close_file()
+#                             self._close_file()
+                            wave_file_writer.close()
+                            wave_file_writer = None
             
             # Thread terminated.
-            if self._wave_file:
+#             if self._wave_file:
+            if wave_file_writer:
                 if len(item_list) > 0:
                     # Flush buffer.
                     joined_items = b''.join(item_list)
-                    self._wave_file.writeframes(joined_items)
+#                     self._wave_file.writeframes(joined_items)
+                    wave_file_writer.write(joined_items)
                     item_list = []
                 #
-                self._close_file()
+#                 self._close_file()
+                wave_file_writer.close()
+                wave_file_writer = None
         #
         except Exception as e:
             self._logger.error('Recorder: Sound target exception: ' + str(e))
             self._active = False # Terminate
             self._callback_function('rec_target_error')
 
-    def _open_file(self):
+
+
+class WaveFileWriter():
+    """ """
+    def __init__(self, target_object):
         """ """
-        self._file_open = True
+        self._wave_file = None
+        self._target_object = target_object
+        
         # Create file name.
         # Default time and position.
         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
-        latlongstring = self._filename_lat_long
+        latlongstring = target_object._filename_lat_long
         # Use GPS time if available.
         datetime_local_gps = wurb_core.WurbGpsReader().get_time_local_string()
         if datetime_local_gps:
@@ -406,34 +446,82 @@ class SoundTarget(wurb_core.SoundTargetBase):
         if latlong:
             latlongstring = latlong
         #
-        filename =  self._filename_prefix + \
+        filename =  target_object._filename_prefix + \
                     '_' + \
                     datetimestring + \
                     '_' + \
                     latlongstring + \
                     '_' + \
-                    self._filename_rec_type + \
+                    target_object._filename_rec_type + \
                     '.wav'
-        filenamepath = os.path.join(self._dir_path, filename)
+        filenamepath = os.path.join(target_object._dir_path, filename)
         #
-        if not os.path.exists(self._dir_path):
-            os.makedirs(self._dir_path) # For data, full access.
+        if not os.path.exists(target_object._dir_path):
+            os.makedirs(target_object._dir_path) # For data, full access.
         # Open wave file for writing.
         self._wave_file = wave.open(filenamepath, 'wb')
-        self._wave_file.setnchannels(self._channels)
-        self._wave_file.setsampwidth(self._width)
-        self._wave_file.setframerate(self._out_sampling_rate_hz)
+        self._wave_file.setnchannels(target_object._channels)
+        self._wave_file.setsampwidth(target_object._width)
+        self._wave_file.setframerate(target_object._out_sampling_rate_hz)
         #
-        self._logger.info('Recorder: New wave file: ' + filename)
-
-    def _close_file(self):
+        target_object._logger.info('Recorder: New wave file: ' + filename)
+        
+    def write(self, buffer):
         """ """
-        self._logger.info('Recorder: Audio target wave file closed.')
+        self._wave_file.writeframes(buffer)
+
+    def close(self):
+        """ """
+        self._target_object._logger.info('Recorder: Audio target wave file closed.')
         if self._wave_file is not None:
             self._wave_file.close()
             self._wave_file = None 
-        #    
-        self._file_open = False
+
+
+#     def _open_file(self):
+#         """ """
+#         self._file_open = True
+#         # Create file name.
+#         # Default time and position.
+#         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
+#         latlongstring = self._filename_lat_long
+#         # Use GPS time if available.
+#         datetime_local_gps = wurb_core.WurbGpsReader().get_time_local_string()
+#         if datetime_local_gps:
+#             datetimestring = datetime_local_gps
+#         # Use GPS time if available.
+#         latlong = wurb_core.WurbGpsReader().get_latlong_string()
+#         if latlong:
+#             latlongstring = latlong
+#         #
+#         filename =  self._filename_prefix + \
+#                     '_' + \
+#                     datetimestring + \
+#                     '_' + \
+#                     latlongstring + \
+#                     '_' + \
+#                     self._filename_rec_type + \
+#                     '.wav'
+#         filenamepath = os.path.join(self._dir_path, filename)
+#         #
+#         if not os.path.exists(self._dir_path):
+#             os.makedirs(self._dir_path) # For data, full access.
+#         # Open wave file for writing.
+#         self._wave_file = wave.open(filenamepath, 'wb')
+#         self._wave_file.setnchannels(self._channels)
+#         self._wave_file.setsampwidth(self._width)
+#         self._wave_file.setframerate(self._out_sampling_rate_hz)
+#         #
+#         self._logger.info('Recorder: New wave file: ' + filename)
+# 
+#     def _close_file(self):
+#         """ """
+#         self._logger.info('Recorder: Audio target wave file closed.')
+#         if self._wave_file is not None:
+#             self._wave_file.close()
+#             self._wave_file = None 
+#         #    
+#         self._file_open = False
 
 
 
