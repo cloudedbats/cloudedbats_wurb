@@ -355,15 +355,12 @@ class SoundTarget(wurb_core.SoundTargetBase):
                     self._active = False # Terminated by previous step.                 
                 # False indicates silent part. Close file until not silent. 
                 elif item is False:
-#                     if self._wave_file:
                     if wave_file_writer:
                         # Flush buffer.
                         joined_items = b''.join(item_list)
-#                         self._wave_file.writeframes(joined_items)
                         wave_file_writer.write(joined_items)
                         item_list = []
                         # Close.
-#                         self._close_file()
                         wave_file_writer.close()
                         wave_file_writer = None
                 # Normal case, write frames.
@@ -372,50 +369,36 @@ class SoundTarget(wurb_core.SoundTargetBase):
                     
                     item_list.append(data)
                     # Open file if first after silent part.
-#                     if not self._file_open:
                     if not wave_file_writer:
-#                         self._open_file()
                         wave_file_writer = WaveFileWriter(self)
-                        if rec_start_time is None:
-                            rec_start_time = rec_time
-                        else:
-                            rec_start_time += self._max_record_length_s
+                        rec_start_time = rec_time
                     #
                     if len(item_list) >= item_list_max:
                         # Flush buffer.
-#                         if self._wave_file:
                         if wave_file_writer:
                             joined_items = b''.join(item_list)
-#                             self._wave_file.writeframes(joined_items)
                             wave_file_writer.write(joined_items)
                             item_list = []
-                # Check if max rec length was reached.
-                if rec_start_time:
-                    if (rec_start_time + self._max_record_length_s) < rec_time:
-                        # Flush buffer.
-#                         if self._wave_file:
-                        if wave_file_writer:
-                            # Flush buffer.
-                            joined_items = b''.join(item_list)
-#                             self._wave_file.writeframes(joined_items)
-                            wave_file_writer.write(joined_items)
-                            item_list = []
-                            # Close.
-#                             self._close_file()
-                            wave_file_writer.close()
-                            wave_file_writer = None
+                    # Check if max rec length was reached.
+                    if rec_start_time:
+                        if (rec_start_time + self._max_record_length_s) < rec_time:
+                            if wave_file_writer:
+                                # Flush buffer.
+                                joined_items = b''.join(item_list)
+                                wave_file_writer.write(joined_items)
+                                item_list = []
+                                # Close.
+                                wave_file_writer.close()
+                                wave_file_writer = None
             
             # Thread terminated.
-#             if self._wave_file:
             if wave_file_writer:
                 if len(item_list) > 0:
                     # Flush buffer.
                     joined_items = b''.join(item_list)
-#                     self._wave_file.writeframes(joined_items)
                     wave_file_writer.write(joined_items)
                     item_list = []
                 #
-#                 self._close_file()
                 wave_file_writer.close()
                 wave_file_writer = None
         #
@@ -423,7 +406,6 @@ class SoundTarget(wurb_core.SoundTargetBase):
             self._logger.error('Recorder: Sound target exception: ' + str(e))
             self._active = False # Terminate
             self._callback_function('rec_target_error')
-
 
 
 class WaveFileWriter():
@@ -477,51 +459,6 @@ class WaveFileWriter():
             self._wave_file.close()
             self._wave_file = None 
 
-
-#     def _open_file(self):
-#         """ """
-#         self._file_open = True
-#         # Create file name.
-#         # Default time and position.
-#         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
-#         latlongstring = self._filename_lat_long
-#         # Use GPS time if available.
-#         datetime_local_gps = wurb_core.WurbGpsReader().get_time_local_string()
-#         if datetime_local_gps:
-#             datetimestring = datetime_local_gps
-#         # Use GPS time if available.
-#         latlong = wurb_core.WurbGpsReader().get_latlong_string()
-#         if latlong:
-#             latlongstring = latlong
-#         #
-#         filename =  self._filename_prefix + \
-#                     '_' + \
-#                     datetimestring + \
-#                     '_' + \
-#                     latlongstring + \
-#                     '_' + \
-#                     self._filename_rec_type + \
-#                     '.wav'
-#         filenamepath = os.path.join(self._dir_path, filename)
-#         #
-#         if not os.path.exists(self._dir_path):
-#             os.makedirs(self._dir_path) # For data, full access.
-#         # Open wave file for writing.
-#         self._wave_file = wave.open(filenamepath, 'wb')
-#         self._wave_file.setnchannels(self._channels)
-#         self._wave_file.setsampwidth(self._width)
-#         self._wave_file.setframerate(self._out_sampling_rate_hz)
-#         #
-#         self._logger.info('Recorder: New wave file: ' + filename)
-# 
-#     def _close_file(self):
-#         """ """
-#         self._logger.info('Recorder: Audio target wave file closed.')
-#         if self._wave_file is not None:
-#             self._wave_file.close()
-#             self._wave_file = None 
-#         #    
-#         self._file_open = False
 
 
 
