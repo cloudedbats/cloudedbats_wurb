@@ -25,9 +25,9 @@ class SoundSource(wurb_core.SoundSourceBase):
         super(SoundSource, self).__init__()
         #
         self._pyaudio = pyaudio.PyAudio()
-        self.read_settings()
-        self._setup_pyaudio()
+        self._stream = None
         #
+        self.read_settings()
         
     def read_settings(self):
         """ Called from base class. """
