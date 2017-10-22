@@ -8,6 +8,7 @@ from gps3 import gps3
 import os
 import pytz
 import time
+import datetime
 import dateutil.parser
 import threading
 import logging
@@ -154,15 +155,22 @@ class WurbGpsReader(object):
                     gps_longitude = data_stream.TPV['lon']
                     #
                     if gps_time and (gps_time != 'n/a'):
-                        self.gps_time = data_stream.TPV['time']
-                        #
-                        if not first_gps_time_received:
-                            first_gps_time_received = True
-                            self._logger.info('GPS reader: First GPS time received: ' + self.get_time_local_string())
-                            # Set Raspberry Pi time.
-                            if self._set_rpi_time_from_gps:
-                                self._logger.info('GPS reader: Raspberry Pi date/time is set.')
-                                os.system('sudo date --set "' + str(self.gps_time) + '"')
+                        if first_gps_time_received:
+                            self.gps_time = data_stream.TPV['time']
+                        else:
+                            if self.is_time_valid(gps_time):
+                                self.gps_time = data_stream.TPV['time']
+                                first_gps_time_received = True
+                                self._logger.info('GPS reader: First GPS time received: ' + self.get_time_local_string())
+                                # Set Raspberry Pi time.
+                                if self._set_rpi_time_from_gps:
+                                    datetime_gps = dateutil.parser.parse(gps_time).astimezone(self._timezone)
+                                    datetime_now = datetime.datetime.now(datetime_gps.tzinfo)
+                                    if datetime_gps > datetime_now:
+                                        self._logger.info('GPS reader: Raspberry Pi date/time is set.')
+                                        os.system('sudo date --set "' + str(self.gps_time) + '"')
+                                    else:
+                                        self._logger.info('GPS reader: Raspberry Pi date/time is NOT set.')
                     else:
                         # Don't use the old fetched time.
                         self.gps_time = None
@@ -188,7 +196,19 @@ class WurbGpsReader(object):
         finally:
             gps_socket.watch(False)
 
-
+    def is_time_valid(self, gps_time):
+        """ Some brands of GPS units may give strange datetimes at startup when used indoors. """
+        datetime_gps = dateutil.parser.parse(gps_time).astimezone(self._timezone)
+        datetime_now = datetime.datetime.now(datetime_gps.tzinfo)
+        self._logger.debug('GPS reader: Checked time at startup. GPS: '  + str(datetime_gps) + '   Local: ' + str(datetime_now))
+        
+        # Check if the GPS datetimeis in the interval -1 day to + 5 years. 
+        if datetime_gps < (datetime_now - datetime.timedelta(days=1)):
+            return False
+        elif datetime_gps > (datetime_now + datetime.timedelta(days=(365 * 5))):
+            return False
+        else:
+            return True
 
 ### Test. ###
 if __name__ == "__main__":
