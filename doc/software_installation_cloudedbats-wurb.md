@@ -109,7 +109,15 @@ Modify to these values:
  
     MOUNTOPTIONS="noexec,nodev,noatime,nodiratime"
     FS_MOUNTOPTIONS="-fstype=vfat,uid=pi,gid=pi,dmask=0000,fmask=0111"
- 
+
+### Time sync from the Internet 
+
+Before Raspbian Stretch this was installed by default. You need to set up it yourself if you need it.  
+
+   sudo apt-get install ntp
+   sudo systemctl enable ntp
+   sudo timedatectl set-ntp 1
+
 ### Special rules for Pettersson M500 (windows version).
  
 Pettersson M500-384 is developed for Linux etc., but M500 is for Windows only.
