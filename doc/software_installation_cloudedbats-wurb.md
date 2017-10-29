@@ -110,13 +110,21 @@ Modify to these values:
     MOUNTOPTIONS="noexec,nodev,noatime,nodiratime"
     FS_MOUNTOPTIONS="-fstype=vfat,uid=pi,gid=pi,dmask=0000,fmask=0111"
 
+Debian Stretch differ from earlier versions and this modification is needed
+
+    sudo nano /lib/systemd/system/systemd-udevd.service
+
+Change "MountFlags=slave" to "MountFlags=shared":
+
+    MountFlags=shared
+
 ### Time sync from the Internet 
 
 Before Raspbian Stretch this was installed by default. You need to set up it yourself if you need it.  
 
-   sudo apt-get install ntp
-   sudo systemctl enable ntp
-   sudo timedatectl set-ntp 1
+    sudo apt-get install ntp
+    sudo systemctl enable ntp
+    sudo timedatectl set-ntp 1
 
 ### Special rules for Pettersson M500 (windows version).
  
@@ -140,9 +148,9 @@ Add this line to the file:
     
     git clone https://github.com/cloudedbats/cloudedbats_wurb.git .
 
-Or to get the latests changes or a specific release:
+Or to get the latests changes or a specific release (check alternatives in branches and releases):
 
-    git clone -b development-branch https://github.com/cloudedbats/cloudedbats_wurb.git .
+    git clone -b stable https://github.com/cloudedbats/cloudedbats_wurb.git .
     git clone -b 2017-sept https://github.com/cloudedbats/cloudedbats_wurb.git .
     
  
@@ -155,6 +163,7 @@ Add this before "exit 0":
     # CloudedBats.
     sudo -u pi python3 /home/pi/cloudedbats/cloudedbats_wurb/wurb_raspberry_pi/control_raspberrypi_by_gpio.py &
     sudo -u pi python3 /home/pi/cloudedbats/cloudedbats_wurb/wurb_main.py &
+    # sudo -u pi python3 /home/pi/cloudedbats/cloudedbats_wurb/wurb_main_no_usb.py &
  
 ### Finished
  
