@@ -462,14 +462,7 @@ class SoundTarget(wurb_core.SoundTargetBase):
         #
         super(SoundTarget, self).__init__()
         # From settings. 
-        self._dir_path = '/home/arnold/Desktop/WURB_REC_TEST'
-        
-        
-        
-        #self._dir_path = self._settings.text('rec_directory_path')
-        
-        
-        
+        self._dir_path = self._settings.text('rec_directory_path')
         self._filename_prefix = self._settings.text('rec_filename_prefix')
         rec_max_length_s = self._settings.integer('rec_max_length_s')
         self.rec_max_length = rec_max_length_s * 2

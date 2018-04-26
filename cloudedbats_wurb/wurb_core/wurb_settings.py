@@ -28,6 +28,7 @@ class WurbSettings(object):
         self._wurb_settings = {}
         self._default_settings_text = []
         self._default_settings = {}
+        self._developer_settings = {}
         self._valid_settings = {}    
         self._wurb_scheduler_events = []
 
@@ -36,8 +37,6 @@ class WurbSettings(object):
         value = ''
         if key in self._wurb_settings:
             value = self._wurb_settings.get(key)
-        elif key in self._default_settings:
-            value = self._default_settings.get(key)
         # Return string.
         return value
 
@@ -46,8 +45,6 @@ class WurbSettings(object):
         value = 'F'
         if key in self._wurb_settings:
             value = self._wurb_settings.get(key)
-        elif key in self._default_settings:
-            value = self._default_settings.get(key)
         #
         if value.lower() in ['yes', 'no', 'y', 'n', 'true', 'false', 't', 'f']:
             return True
@@ -59,8 +56,6 @@ class WurbSettings(object):
         value = '0'
         if key in self._wurb_settings:
             value = self._wurb_settings.get(key)
-        elif key in self._default_settings:
-            value = self._default_settings.get(key)
         # Return integer.
         try:
             return int(value)
@@ -96,56 +91,25 @@ class WurbSettings(object):
         if default_settings:
             self._default_settings_text.append('')
             for row in default_settings:
-                self._wurb_settings[row['key']] = row['value']
-                self._default_settings_text.append(row['key'] + ': ' + str(row['value']))
-                self._default_settings[row['key']] = row['value']
-                if 'valid' in row:
-                    self._valid_settings[row['key']] = row['valid']
+                if row['key'] == 'scheduler_event':
+                    self._default_settings_text.append(row['key'] + ': ' + str(row['value']))
+                    self._wurb_scheduler_events.append(row['value'])
+                else:
+                    self._default_settings_text.append(row['key'] + ': ' + str(row['value']))
+                    self._wurb_settings[row['key']] = row['value']
+                    self._default_settings[row['key']] = row['value']
+                    if 'valid' in row:
+                        self._valid_settings[row['key']] = row['valid']
 
         # Hidden settings.
         if developer_settings:
             for row in developer_settings:
                 self._wurb_settings[row['key']] = row['value']
-                self._default_settings[row['key']] = row['value']
+                self._developer_settings[row['key']] = row['value']
                 if 'valid' in row:
                     self._valid_settings[row['key']] = row['valid']
                 
         print('DEBUG')
-        
-#     def _load_user_settings(self):
-#         """ """
-#         self._logger.info('Settings: Loading user settings file: ' + str(self._user_settings_path))
-#         self._load_settings(self._user_settings_path)
-#         
-#     def _copy_template_settings_to_external(self):
-#         """ """
-#         # Create directory for settings.
-#         if not self._external_dir_path.exists():
-#             self._external_dir_path.mkdir(parents=True)
-#         # Copy template to USB memory.
-#         if self._user_settings_template_path.exists():
-#             shutil.copy(str(self._user_settings_template_path), str(self._external_user_settings_template_path))
-#             self._logger.info('Template for user settings moved to USB memory.')
-#         
-#     def _copy_settings_from_external(self):
-#         """ """
-#         # Create directory for settings.
-#         if not self._internal_dir_path.exists():
-#             self._internal_dir_path.mkdir(parents=True)
-#         # Copy new versions of config and settings from usb memory.
-#         if pathlib.Path(self._external_dir_path).exists():
-#             # wurb_hw_config.txt
-# #             if self._external_hw_config_path.exists():
-# #                 shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
-# #                 self._logger.info('Settings: "hw_config.txt" moved from USB memory.')
-# #             # wurb_wifi_config.txt
-# #             if self._external_wifi_config_path.exists():
-# #                 shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
-# #                 self._logger.info('Settings: "wifi_config.txt" moved from USB memory.')
-#             # wurb_settings.txt
-#             if self._external_user_settings_path.exists():
-#                 shutil.copy(str(self._external_user_settings_path), str(self._user_settings_path))
-#                 self._logger.info('Settings: "user_settings.txt" moved from USB memory.')
         
     def load_settings(self, file_path):
         """ """
@@ -154,6 +118,7 @@ class WurbSettings(object):
             return
         #
         self._logger.info('Settings: Used settings from file: ')
+        clear_default_scheduler_events = True
         with file_path.open('r') as infile:
             for row in infile:
                 key_value = row.strip()
@@ -170,6 +135,10 @@ class WurbSettings(object):
                         value = key_value_list[1].strip()
                         if key and value:
                             if key == 'scheduler_event':
+                                # Clear defaults if scheduler events are defined. First time only.
+                                if clear_default_scheduler_events:
+                                    self._wurb_scheduler_events = []
+                                    clear_default_scheduler_events = False
                                 # Many rows with the same key are allowed.
                                 self._wurb_scheduler_events.append(value)
                                 self._logger.info('- Scheduler event: ' + str(value))
@@ -186,9 +155,41 @@ class WurbSettings(object):
 
     def save_last_used_settings(self, file_path):
         """ """
-        used_settings = []
-        for key, value in self._wurb_settings.items():
-            used_settings.append(key + ': ' + str(value))   
+        used_settings = [
+            '# Settings used during the last ',
+            '# execution of CloudedBats WURB.',
+            '#',
+            '# Standard settings:',
+            '# ',
+            ]
+        #
+        for key in sorted(self._wurb_settings.keys()):
+            if key in self._default_settings:
+                used_settings.append(key + ': ' + str(self._wurb_settings[key]))
+        #
+        used_settings.append('# ')
+        used_settings.append('# Scheduler events:')
+        used_settings.append('# ')
+        #
+        for row in self._wurb_scheduler_events:
+            used_settings.append(row)
+        #
+        used_settings.append('# ')
+        used_settings.append('# Development settings:')
+        used_settings.append('# ')
+        #
+        for key in sorted(self._wurb_settings.keys()):
+            if key in self._developer_settings:
+                used_settings.append(key + ': ' + str(self._wurb_settings[key]))
+        #
+        used_settings.append('# ')
+        used_settings.append('# Unrecognised settings:')
+        used_settings.append('# ')
+        #
+        for key in sorted(self._wurb_settings.keys()):
+            if (key not in self._default_settings) and \
+               (key not in self._developer_settings) :
+                used_settings.append(key + ': ' + str(self._wurb_settings[key]))
         #
         with file_path.open('w') as file:
             file.write('\r\n'.join(used_settings))

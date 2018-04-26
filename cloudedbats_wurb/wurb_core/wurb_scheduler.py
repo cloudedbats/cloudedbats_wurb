@@ -26,6 +26,9 @@ def default_settings():
         {'key': 'scheduler_wait_for_gps', 'value': 'N'},  
         {'key': 'default_latitude', 'value': '0.0'}, 
         {'key': 'default_longitude', 'value': '0.0'},
+        #
+        {'key': 'scheduler_event', 'value': 'scheduler_rec_on/sunset/-10'},
+        {'key': 'scheduler_event', 'value': 'scheduler_rec_off/sunrise/+10'},
         ]
     developer_settings = [
         ]

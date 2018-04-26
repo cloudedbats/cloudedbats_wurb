@@ -67,7 +67,7 @@ class WurbApplication():
         self._state_machine.set_current_state('wurb_init')
         self._state_machine.start()
         
-        # Config and settings. Singleton util.
+        # Settings. Singleton util.
         self._logger.info('')
         self._logger.info('=== Setting startup. ===')
         self._settings = wurb_core.WurbSettings()
@@ -81,7 +81,7 @@ class WurbApplication():
         desc, default, dev = wurb_core.wurb_scheduler.default_settings()
         self._settings.set_default_values(desc, default, dev)
         # Internal and external paths to setting files.
-        current_dir = pathlib.Path(__file__).parents[0]
+        current_dir = pathlib.Path(__file__).parents[1]
         internal_path = pathlib.Path(current_dir, 'wurb_settings')
         external_path = '/media/usb0/cloudedbats_wurb/settings'
         internal_setting_path = pathlib.Path(internal_path, 'user_settings.txt')
