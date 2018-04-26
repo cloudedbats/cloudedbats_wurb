@@ -13,7 +13,7 @@ if __name__ == "__main__":
         To be used when using the internal SD card to record sound. 
         For example when using 'Raspberry Pi Zero'. """
         
-    wurb_app = wurb_core.WurbApplication(usb_memory_required=False)
+    wurb_app = wurb_core.WurbApplication(usb_memory_used=False)
 
 # TODO: For development.
     import time
@@ -23,3 +23,4 @@ if __name__ == "__main__":
     wurb_app.perform_event('test_rec_off')
     time.sleep(0.1)
     wurb_app.stop()
+    print('TEST - Ended')

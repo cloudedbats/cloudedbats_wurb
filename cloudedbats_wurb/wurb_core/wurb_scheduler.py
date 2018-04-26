@@ -22,8 +22,8 @@ def default_settings():
         '# Default for latitude/longitude in the decimal degree format.',
         ]
     default_settings = [
-        {'key': 'scheduler_use_gps', 'value': 'TE'},
-        {'key': 'scheduler_wait_for_gps', 'value': 'TE'},  
+        {'key': 'scheduler_use_gps', 'value': 'N'},
+        {'key': 'scheduler_wait_for_gps', 'value': 'N'},  
         {'key': 'default_latitude', 'value': '0.0'}, 
         {'key': 'default_longitude', 'value': '0.0'},
         ]
@@ -101,7 +101,7 @@ class WurbScheduler(object):
         
         # Read scheduling events from the settings file.
         self._scheduler_event_list = []
-        for event in self._settings.get_scheduler_events():
+        for event in self._settings.scheduler_events():
             event_parts = event.split('/')
             if len(event_parts) >= 2:
                 event_dict = {}

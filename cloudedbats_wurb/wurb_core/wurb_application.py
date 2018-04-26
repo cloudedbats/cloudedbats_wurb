@@ -6,6 +6,8 @@
 
 import os
 import time
+import pathlib
+import shutil
 import logging
 import wurb_core
 import wurb_raspberry_pi
@@ -13,11 +15,11 @@ import wurb_raspberry_pi
 class WurbApplication():
     """ Main class for CloudedBats WURB, Wireless Ultrasonic Recorder for Bats.
     """
-    def __init__(self, usb_memory_required=True):
+    def __init__(self, usb_memory_used=True):
         """ """
-        self._usb_required = usb_memory_required
+        self._usb_memory_used = usb_memory_used
         # Logging.
-        wurb_core.WurbLogging().setup(usb_required = self._usb_required)
+        wurb_core.WurbLogging().setup(usb_memory_used = self._usb_memory_used)
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._logger.info('')
         self._logger.info('Welcome to CloudedBats-WURB')
@@ -62,30 +64,54 @@ class WurbApplication():
         self._state_machine = wurb_core.WurbStateMachine()
         self._state_machine.load_states(self.define_state_machine())
         self._state_machine.set_perform_action_function(self.perform_action)
-        self._state_machine.set_current_state('rec_auto')
+        self._state_machine.set_current_state('wurb_init')
         self._state_machine.start()
         
         # Config and settings. Singleton util.
         self._logger.info('')
-        self._logger.info('=== Setting and config startup. ===')
+        self._logger.info('=== Setting startup. ===')
         self._settings = wurb_core.WurbSettings()
-        # Default settings for wurb_recorder.
+        # Load default settings for wurb_recorder.
         (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
         self._settings.set_default_values(desc, default, dev)
-        # Default settings for wurb_gps_reader.
+        # Load default settings for wurb_gps_reader.
         desc, default, dev = wurb_core.wurb_gps_reader.default_settings()
         self._settings.set_default_values(desc, default, dev)
-        # Default settings for wurb_scheduler.
+        # Load default settings for wurb_scheduler.
         desc, default, dev = wurb_core.wurb_scheduler.default_settings()
         self._settings.set_default_values(desc, default, dev)
-        # Activate settings.
-        self._settings.start(callback_function=self.perform_event,
-                             usb_required = self._usb_required)
+        # Internal and external paths to setting files.
+        current_dir = pathlib.Path(__file__).parents[0]
+        internal_path = pathlib.Path(current_dir, 'wurb_settings')
+        external_path = '/media/usb0/cloudedbats_wurb/settings'
+        internal_setting_path = pathlib.Path(internal_path, 'user_settings.txt')
+        # Create directories.
+        if not internal_path.exists():
+            internal_path.mkdir(parents=True)
+        if self._usb_memory_used:
+            if not external_path.exists():
+                external_path.mkdir(parents=True)
+        # Copy settings from USB.
+        if self._usb_memory_used:
+            external_setting_path = pathlib.Path(external_path, 'user_settings.txt')
+            if external_setting_path.exists():
+                self._logger.info('Settings: Copying user_settings.txt from USB')
+                shutil.copy(str(external_setting_path), 
+                            str(internal_setting_path))
+        # Load setting from file.
+        self._logger.info('WURB Main: Loading user settings file.')
+        self._settings.load_settings(internal_setting_path)
+        # Save default setting and last used settings.
+        self._settings.save_default_settings(pathlib.Path(internal_path, 'user_settings_DEFAULT.txt'))
+        self._settings.save_last_used_settings(pathlib.Path(internal_path, 'user_settings_LAST_USED.txt'))
+        if self._usb_memory_used:
+            self._settings.save_default_settings(pathlib.Path(external_path, 'user_settings_DEFAULT.txt'))
+            self._settings.save_last_used_settings(pathlib.Path(external_path, 'user_settings_LAST_USED.txt'))
         
         # Sunset-sunrise. Singleton util.
         self._logger.info('')
         self._logger.info('=== Setting and config startup. ===')
-        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('timezone', 'UTC'))
+        wurb_core.WurbSunsetSunrise().set_timezone(self._settings.text('timezone'))
         
         # GPS. Singleton util.
         self._logger.info('')
@@ -124,7 +150,6 @@ class WurbApplication():
         if self._mouse_ctrl: self._mouse_ctrl.stop()
         if self._scheduler: self._scheduler.stop()
         if self._state_machine: self._state_machine.stop()
-        if self._settings: self._settings.stop()
         
     def perform_event(self, event):
         """ Used for event callbacks from connected modules. """
@@ -167,17 +192,17 @@ class WurbApplication():
         """ """
         state_machine_data = [
             # 
-            {'states': ['rec_auto', 'rec_off'], 
+            {'states': ['wurb_init', 'rec_auto', 'rec_off'], 
              'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
              'actions': ['rec_stop', 'rec_start'] }, 
             # 
-            {'states': ['rec_auto', 'rec_on'], 
+            {'states': ['wurb_init', 'rec_auto', 'rec_on'], 
              'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
              'new_state': 'rec_off',  
              'actions': ['rec_stop'] }, 
             # 
-            {'states': ['rec_on', 'rec_off'], 
+            {'states': ['wurb_init', 'rec_on', 'rec_off'], 
              'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
              'new_state': 'rec_auto',  
              'actions': ['rec_stop', 'sleep_1s', 'auto_check_state'] }, 

@@ -4,7 +4,6 @@
 # Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import sys
 import pathlib
 import shutil
 import logging
@@ -25,6 +24,7 @@ class WurbSettings(object):
         
     def __init__(self):
         """ Note: Singleton, parameters not allowed. """
+        self._logger = logging.getLogger('CloudedBatsWURB')
         self._wurb_settings = {}
         self._default_settings_text = []
         self._default_settings = {}
@@ -84,28 +84,6 @@ class WurbSettings(object):
         """ """
         return self._wurb_scheduler_events
     
-    
-    def get_value(self, key, default = ''):
-        """ """
-        value = self._wurb_settings.get(key, default)
-        # Check if int.
-        try:
-            return int(value)
-        except:
-            pass
-        # Check if float.
-        try:
-            return float(value)
-        except:
-            pass
-        # Check for boolean.
-        if value.lower() in ['true']:
-            return True
-        elif value.lower() in ['false']:
-            return False
-        # Must be string.
-        return value
-    
     def set_default_values(self, description=None, default_settings=None, developer_settings=None):
         """ """
         # Description.
@@ -133,90 +111,43 @@ class WurbSettings(object):
                     self._valid_settings[row['key']] = row['valid']
                 
         print('DEBUG')
-    
-    
-    def start(self, callback_function=None, 
-                    usb_required=True,  
-                    internal_path='wurb_settings',
-                    external_path='/media/usb0/cloudedbats_wurb/settings'):
-        """ """
-        self._callback_function = callback_function
-        self._usb_required = usb_required
-        self._logger = logging.getLogger('CloudedBatsWURB')
-        # Internal.
-        dir_path = pathlib.Path(sys.modules['__main__'].__file__).parents[0] # Same level as wurb_main.py.
-        self._internal_dir_path = pathlib.Path(dir_path, internal_path)
-#         self._hw_config_path = pathlib.Path(self._internal_dir_path, 'hw_config.txt')
-        self._user_settings_path = pathlib.Path(self._internal_dir_path, 'user_settings.txt')
-        self._user_settings_template_path = pathlib.Path(self._internal_dir_path, 'user_settings_TEMPLATE.txt')
-        # External.
-        if self._usb_required:
-            self._external_dir_path = pathlib.Path(external_path)
-#             self._external_hw_config_path = pathlib.Path(external_path, 'hw_config.txt')
-#             self._external_wifi_config_path = pathlib.Path(external_path, 'wifi_config.txt')
-            self._external_user_settings_path = pathlib.Path(external_path, 'user_settings.txt')
-            self._external_user_settings_template_path = pathlib.Path(external_path, 'user_settings_TEMPLATE.txt')
-        #
-        self._wurb_settings = {}
-        self._wurb_scheduler_events = [] # Multiple rows are allowed for scheduler events.
         
-        # Copy template settings file to USB memory. Shutdown if USB not available. 
-        if self._usb_required:
-            try: 
-                self._copy_template_settings_to_external()
-            except:
-                # Not possible to write to USB memory.
-#                 if self._callback_function:
-#                     self._callback_function('no_usb_detected_error')
-                pass
-            # Copy user defined settings from USB to internal location.
-            self._copy_settings_from_external()
-            
-        # Load settings.
-#         self._load_hw_config()
-#         self._load_wifi_config()
-        self._load_user_settings()
+#     def _load_user_settings(self):
+#         """ """
+#         self._logger.info('Settings: Loading user settings file: ' + str(self._user_settings_path))
+#         self._load_settings(self._user_settings_path)
+#         
+#     def _copy_template_settings_to_external(self):
+#         """ """
+#         # Create directory for settings.
+#         if not self._external_dir_path.exists():
+#             self._external_dir_path.mkdir(parents=True)
+#         # Copy template to USB memory.
+#         if self._user_settings_template_path.exists():
+#             shutil.copy(str(self._user_settings_template_path), str(self._external_user_settings_template_path))
+#             self._logger.info('Template for user settings moved to USB memory.')
+#         
+#     def _copy_settings_from_external(self):
+#         """ """
+#         # Create directory for settings.
+#         if not self._internal_dir_path.exists():
+#             self._internal_dir_path.mkdir(parents=True)
+#         # Copy new versions of config and settings from usb memory.
+#         if pathlib.Path(self._external_dir_path).exists():
+#             # wurb_hw_config.txt
+# #             if self._external_hw_config_path.exists():
+# #                 shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
+# #                 self._logger.info('Settings: "hw_config.txt" moved from USB memory.')
+# #             # wurb_wifi_config.txt
+# #             if self._external_wifi_config_path.exists():
+# #                 shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
+# #                 self._logger.info('Settings: "wifi_config.txt" moved from USB memory.')
+#             # wurb_settings.txt
+#             if self._external_user_settings_path.exists():
+#                 shutil.copy(str(self._external_user_settings_path), str(self._user_settings_path))
+#                 self._logger.info('Settings: "user_settings.txt" moved from USB memory.')
         
-    def stop(self):
-        """ """
-        pass # Dummy.
-        
-    def _load_user_settings(self):
-        """ """
-        self._logger.info('Settings: Loading user settings file: ' + str(self._user_settings_path))
-        self._load_settings(self._user_settings_path)
-        
-    def _copy_template_settings_to_external(self):
-        """ """
-        # Create directory for settings.
-        if not self._external_dir_path.exists():
-            self._external_dir_path.mkdir(parents=True)
-        # Copy template to USB memory.
-        if self._user_settings_template_path.exists():
-            shutil.copy(str(self._user_settings_template_path), str(self._external_user_settings_template_path))
-            self._logger.info('Template for user settings moved to USB memory.')
-        
-    def _copy_settings_from_external(self):
-        """ """
-        # Create directory for settings.
-        if not self._internal_dir_path.exists():
-            self._internal_dir_path.mkdir(parents=True)
-        # Copy new versions of config and settings from usb memory.
-        if pathlib.Path(self._external_dir_path).exists():
-            # wurb_hw_config.txt
-#             if self._external_hw_config_path.exists():
-#                 shutil.copy(str(self._external_hw_config_path), str(self._hw_config_path))
-#                 self._logger.info('Settings: "hw_config.txt" moved from USB memory.')
-#             # wurb_wifi_config.txt
-#             if self._external_wifi_config_path.exists():
-#                 shutil.copy(str(self._external_wifi_config_path), str(self._wifi_config_path))
-#                 self._logger.info('Settings: "wifi_config.txt" moved from USB memory.')
-            # wurb_settings.txt
-            if self._external_user_settings_path.exists():
-                shutil.copy(str(self._external_user_settings_path), str(self._user_settings_path))
-                self._logger.info('Settings: "user_settings.txt" moved from USB memory.')
-        
-    def _load_settings(self, file_path):
+    def load_settings(self, file_path):
         """ """
         if not file_path.exists():
             self._logger.warning('Settings: Config/settings file does not exists. Default values are used.')
@@ -246,4 +177,20 @@ class WurbSettings(object):
                                 # Add to dict. Only one is allowed.
                                 self._wurb_settings[key] = value
                                 self._logger.info('- Setting key: ' + str(key) + ' value: ' + str(value))
+
+
+    def save_default_settings(self, file_path):
+        """ """
+        with file_path.open('w') as file:
+            file.write('\r\n'.join(self._default_settings_text))
+
+    def save_last_used_settings(self, file_path):
+        """ """
+        used_settings = []
+        for key, value in self._wurb_settings.items():
+            used_settings.append(key + ': ' + str(value))   
+        #
+        with file_path.open('w') as file:
+            file.write('\r\n'.join(used_settings))
+
 
