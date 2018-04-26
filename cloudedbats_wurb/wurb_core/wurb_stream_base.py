@@ -21,8 +21,8 @@ class WurbSoundStreamManager(object):
                 source_object=None, 
                 process_object=None, 
                 target_object=None,
-                source_queue_max=1000, # Max items.
-                target_queue_max=1000,): # Max items.
+                source_queue_max=100, # Max items.
+                target_queue_max=100,): # Max items.
         """ """
         self.source_queue = queue.Queue(maxsize=source_queue_max)
         self.target_queue = queue.Queue(maxsize=target_queue_max)
@@ -49,6 +49,9 @@ class WurbSoundStreamManager(object):
         self._process_thread.start()
         # Start source in thread.
         self._source_thread = threading.Thread(target=self._source.source_exec, args=[])
+        
+        time.sleep(2)
+        
         self._source_thread.start()
 
     def stop_streaming(self, stop_immediate=False):

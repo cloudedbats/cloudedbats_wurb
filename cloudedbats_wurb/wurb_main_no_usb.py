@@ -15,11 +15,11 @@ if __name__ == "__main__":
         
     wurb_app = wurb_core.WurbApplication(usb_memory_required=False)
 
-# # TODO: For development.
-#     import time
-#     time.sleep(1.0)
-#     wurb_app.perform_event('test_rec_on')
-#     time.sleep(20.0) 
-#     wurb_app.perform_event('test_rec_off')
-#     time.sleep(0.1)
-#     wurb_app.stop()
+# TODO: For development.
+    import time
+    time.sleep(1.0)
+    wurb_app.perform_event('test_rec_on')
+    time.sleep(10.0) 
+    wurb_app.perform_event('test_rec_off')
+    time.sleep(0.1)
+    wurb_app.stop()

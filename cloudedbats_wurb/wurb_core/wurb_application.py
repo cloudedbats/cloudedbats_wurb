@@ -23,18 +23,19 @@ class WurbApplication():
         self._logger.info('Welcome to CloudedBats-WURB')
         self._logger.info('Project page: http://cloudedbats.org')
         self._logger.info('=============== ^ö^ ================')
-        self._logger.info('')
         
         try:
             # Check input cards and write to log.
-#             self._logger.info('Connected sound cards for input streams:' )
-#             input_sound_cards = wurb_core.SoundSource().get_device_list()
-#             if input_sound_cards:
-#                 for input_sound_card in input_sound_cards:
-#                     self._logger.info('- ' + input_sound_card) 
-#             else:
-#                 self._logger.error('- No connected sound cards found at startup.') 
-#             self._logger.info('')
+            self._logger.info('')
+            self._logger.info('=== Check sound cards. ===')
+            self._logger.info('Connected sound cards for input streams:' )
+            input_sound_cards = wurb_core.get_device_list()
+            if input_sound_cards:
+                for input_sound_card in input_sound_cards:
+                    self._logger.info('- ' + input_sound_card) 
+            else:
+                self._logger.error('- No connected sound cards found at startup.') 
+            
             # Suspend main thread for logging.
             time.sleep(0.1)
             # Modules.
@@ -45,6 +46,7 @@ class WurbApplication():
             self._mouse_ctrl = None
             # Start all modules.
             self.start()
+            
         except Exception as e:
             self._logger.error('')
             self._logger.error('WURB Main: Exception during startup.')
@@ -55,6 +57,8 @@ class WurbApplication():
     def start(self):
         """ """
         # State machine.
+        self._logger.info('')
+        self._logger.info('=== State machine startup. ===')
         self._state_machine = wurb_core.WurbStateMachine()
         self._state_machine.load_states(self.define_state_machine())
         self._state_machine.set_perform_action_function(self.perform_action)
@@ -62,42 +66,54 @@ class WurbApplication():
         self._state_machine.start()
         
         # Config and settings. Singleton util.
+        self._logger.info('')
+        self._logger.info('=== Setting and config startup. ===')
         self._settings = wurb_core.WurbSettings()
+        # Default settings for wurb_recorder.
+        (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
+        self._settings.set_default_values(desc, default, dev)
+        # Default settings for wurb_gps_reader.
+        desc, default, dev = wurb_core.wurb_gps_reader.default_settings()
+        self._settings.set_default_values(desc, default, dev)
+        # Default settings for wurb_scheduler.
+        desc, default, dev = wurb_core.wurb_scheduler.default_settings()
+        self._settings.set_default_values(desc, default, dev)
+        # Activate settings.
         self._settings.start(callback_function=self.perform_event,
                              usb_required = self._usb_required)
         
         # Sunset-sunrise. Singleton util.
+        self._logger.info('')
+        self._logger.info('=== Setting and config startup. ===')
         wurb_core.WurbSunsetSunrise().set_timezone(self._settings.get_value('timezone', 'UTC'))
         
         # GPS. Singleton util.
+        self._logger.info('')
+        self._logger.info('=== GPS startup. ===')
         wurb_core.WurbGpsReader().start()
         
-        # Sound stream parts:
-        # - Source
-        if not self._settings.get_value('recorder_pettersson_m500', 'False'):
-            # Generic USB microphones, including Pettersson M500-384.
-            self._sound_source = wurb_core.SoundSource(callback_function=self.perform_event)
-        else:
-            # The Pettersson M500 microphone is developed for Windows. Special code to handle M500.
-            self._sound_source = wurb_core.SoundSourceM500(callback_function=self.perform_event)
-        # - Process.
-        self._sound_process = wurb_core.SoundProcess(callback_function=self.perform_event)
-        # - Target.
-        self._sound_target = wurb_core.SoundTarget(callback_function=self.perform_event)
-        # - Manager.
-        self._sound_manager = wurb_core.WurbSoundStreamManager(
-                                    self._sound_source, 
-                                    self._sound_process, 
-                                    self._sound_target,
-                                    source_queue_max=1000)
+        # Initiate sound recorder.
+        self._logger.info('')
+        self._logger.info('=== Sound recorder startup. ===')
+        self._sound_manager = wurb_core.WurbRecorder().setup_sound_manager()
         
         # Control-GPIO. Connected by callback.
+        self._logger.info('')
+        self._logger.info('=== GPIO control startup. ===')
         self._gpio_ctrl = wurb_raspberry_pi.ControlByGpio(callback_function=self.perform_event)
         # Control-mouse. Connected by callback.
+        self._logger.info('')
+        self._logger.info('=== Computer mouse startup. ===')
         self._mouse_ctrl = wurb_raspberry_pi.ControlByMouse(callback_function=self.perform_event)
         
         # Control-scheduler. Connected by callback.
+        self._logger.info('')
+        self._logger.info('=== Scheduler startup. ===')
         self._scheduler = wurb_core.WurbScheduler(callback_function=self.perform_event)
+
+        self._logger.info('')
+        self._logger.info('=== Startup done. ===')
+        self._logger.info('')
     
     def stop(self):
         """ """
@@ -184,12 +200,12 @@ class WurbApplication():
             {'states': ['*'], 
              'events': ['rec_source_error', 'rec_target_error'], 
              'new_state': 'rpi_off', 
-             'actions': ['rec_stop'] },  #['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
+             'actions': ['rec_stop', 'rpi_shutdown'] },  #['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 
              'events': ['mouse_rpi_shutdown'], # ['mouse_rpi_shutdown', 'no_usb_detected_error'], 
              'new_state': 'rpi_off', 
-             'actions': ['rec_stop', 'rpi_shutdown', ''] }, 
+             'actions': ['rec_stop', 'rpi_shutdown'] }, 
             ]
         #
         return state_machine_data

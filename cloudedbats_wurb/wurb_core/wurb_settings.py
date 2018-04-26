@@ -19,14 +19,121 @@ class WurbSettings(object):
         3. Add a file to the connected USB memory. Path on USB memory; 
                 'cloudedbats_wurb/settings/user_settings.txt' 
         At startup files for config/settings are copied from the USB memory to the internally
-        stored 'wurb_settings' folder.
-        To get an updated list of possible settings alternatives, search for the string 
-        'self._settings.get_value(' in the whole project.
-        A 'user_settings_TEMPLATE.txt' file will also be prepared. """
+        stored 'wurb_settings' folder at starup, if available. Otherwise, defaults are used.
+        A 'user_settings_DEFAULTS.txt' file will also automatically be prepared at startup. 
+    """
         
     def __init__(self):
+        """ Note: Singleton, parameters not allowed. """
+        self._wurb_settings = {}
+        self._default_settings_text = []
+        self._default_settings = {}
+        self._valid_settings = {}    
+        self._wurb_scheduler_events = []
+
+    def text(self, key):
         """ """
-        pass # Parameters not allowed in singleton.
+        value = ''
+        if key in self._wurb_settings:
+            value = self._wurb_settings.get(key)
+        elif key in self._default_settings:
+            value = self._default_settings.get(key)
+        # Return string.
+        return value
+
+    def boolean(self, key):
+        """ """
+        value = 'F'
+        if key in self._wurb_settings:
+            value = self._wurb_settings.get(key)
+        elif key in self._default_settings:
+            value = self._default_settings.get(key)
+        #
+        if value.lower() in ['yes', 'no', 'y', 'n', 'true', 'false', 't', 'f']:
+            return True
+        # Return Boolean.
+        return False
+
+    def integer(self, key):
+        """ """
+        value = '0'
+        if key in self._wurb_settings:
+            value = self._wurb_settings.get(key)
+        elif key in self._default_settings:
+            value = self._default_settings.get(key)
+        # Return integer.
+        try:
+            return int(value)
+        except:
+            return 0
+
+    def float(self, key):
+        """ """
+        value = '0.0'
+        if key in self._wurb_settings:
+            value = self._wurb_settings.get(key)
+        elif key in self._default_settings:
+            value = self._default_settings.get(key)
+        # Return float.
+        try:
+            return float(value)
+        except:
+            return 0
+
+    def scheduler_events(self):
+        """ """
+        return self._wurb_scheduler_events
+    
+    
+    def get_value(self, key, default = ''):
+        """ """
+        value = self._wurb_settings.get(key, default)
+        # Check if int.
+        try:
+            return int(value)
+        except:
+            pass
+        # Check if float.
+        try:
+            return float(value)
+        except:
+            pass
+        # Check for boolean.
+        if value.lower() in ['true']:
+            return True
+        elif value.lower() in ['false']:
+            return False
+        # Must be string.
+        return value
+    
+    def set_default_values(self, description=None, default_settings=None, developer_settings=None):
+        """ """
+        # Description.
+        if description:
+            self._default_settings_text.append('')
+            for row in description:
+                self._default_settings_text.append(row)
+
+        # Public settings.
+        if default_settings:
+            self._default_settings_text.append('')
+            for row in default_settings:
+                self._wurb_settings[row['key']] = row['value']
+                self._default_settings_text.append(row['key'] + ': ' + str(row['value']))
+                self._default_settings[row['key']] = row['value']
+                if 'valid' in row:
+                    self._valid_settings[row['key']] = row['valid']
+
+        # Hidden settings.
+        if developer_settings:
+            for row in developer_settings:
+                self._wurb_settings[row['key']] = row['value']
+                self._default_settings[row['key']] = row['value']
+                if 'valid' in row:
+                    self._valid_settings[row['key']] = row['valid']
+                
+        print('DEBUG')
+    
     
     def start(self, callback_function=None, 
                     usb_required=True,  
@@ -50,7 +157,7 @@ class WurbSettings(object):
             self._external_user_settings_path = pathlib.Path(external_path, 'user_settings.txt')
             self._external_user_settings_template_path = pathlib.Path(external_path, 'user_settings_TEMPLATE.txt')
         #
-        self._wurb_config = {}
+        self._wurb_settings = {}
         self._wurb_scheduler_events = [] # Multiple rows are allowed for scheduler events.
         
         # Copy template settings file to USB memory. Shutdown if USB not available. 
@@ -73,41 +180,6 @@ class WurbSettings(object):
     def stop(self):
         """ """
         pass # Dummy.
-        
-    def get_value(self, key, default = ''):
-        """ """
-        value = self._wurb_config.get(key, default)
-        # Check if int.
-        try:
-            return int(value)
-        except:
-            pass
-        # Check if float.
-        try:
-            return float(value)
-        except:
-            pass
-        # Check for boolean.
-        if value.lower() in ['true']:
-            return True
-        elif value.lower() in ['false']:
-            return False
-        # Must be string.
-        return value
-    
-    def get_scheduler_events(self):
-        """ """
-        return self._wurb_scheduler_events
-    
-#     def _load_hw_config(self):
-#         """ """
-#         self._logger.info('Settings: Loading hardware config file: ' + str(self._hw_config_path))
-#         self._load_settings(self._hw_config_path)
-        
-#     def _load_wifi_config(self):
-#         """ """
-#         self._logger.info('Settings: Loading hardware config file: ' + str(self._wifi_config_path))
-#         self._load_settings(self._wifi_config_path)
         
     def _load_user_settings(self):
         """ """
@@ -172,6 +244,6 @@ class WurbSettings(object):
                                 self._logger.info('- Scheduler event: ' + str(value))
                             else:
                                 # Add to dict. Only one is allowed.
-                                self._wurb_config[key] = value
+                                self._wurb_settings[key] = value
                                 self._logger.info('- Setting key: ' + str(key) + ' value: ' + str(value))
 

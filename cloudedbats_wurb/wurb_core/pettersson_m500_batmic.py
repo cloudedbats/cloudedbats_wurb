@@ -53,7 +53,8 @@ class PetterssonM500BatMic(object):
 
     def read_stream(self):
         """ """
-        return self._endpoint_in.read(0x10000, 2000) # Size = 65536, timeout = 2 sec.
+        return self._endpoint_in.read(250000, 2000) # Buffer = 0.5 sec, timeout = 2 sec.
+        # return self._endpoint_in.read(0x10000, 2000) # Size = 65536, timeout = 2 sec.
 
     def led_on(self):
         """ """

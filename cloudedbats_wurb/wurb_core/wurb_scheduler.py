@@ -11,6 +11,27 @@ import logging
 import threading
 import wurb_core
 
+def default_settings():
+    """ Available settings for the this module.
+        This info is used to define default values and to 
+        generate the wurb_settings_DEFAULT.txt file."""
+    
+    description = [
+        '', 
+        '# Settings for the WURB scheduler.',
+        '# Default for latitude/longitude in the decimal degree format.',
+        ]
+    default_settings = [
+        {'key': 'scheduler_use_gps', 'value': 'TE'},
+        {'key': 'scheduler_wait_for_gps', 'value': 'TE'},  
+        {'key': 'default_latitude', 'value': '0.0'}, 
+        {'key': 'default_longitude', 'value': '0.0'},
+        ]
+    developer_settings = [
+        ]
+    #
+    return description, default_settings, developer_settings
+
 class WurbScheduler(object):
     """ 
     
@@ -72,11 +93,11 @@ class WurbScheduler(object):
     def _read_settings(self):
         """ """
         # GPS usage.
-        self._use_gps = self._settings.get_value('scheduler_use_gps', 'False')
-        self._wait_for_gps_at_startup = self._settings.get_value('scheduler_wait_for_gps_at_startup', 'False')
+        self._use_gps = self._settings.boolean('scheduler_use_gps')
+        self._wait_for_gps_at_startup = self._settings.boolean('scheduler_wait_for_gps')
         # Default for latitude/longitude in the decimal degree format.
-        self._latitude = float(self._settings.get_value('default_latitude', '0.0'))
-        self._longitude = float(self._settings.get_value('default_longitude', '0.0'))
+        self._latitude = float(self._settings.float('default_latitude'))
+        self._longitude = float(self._settings.float('default_longitude'))
         
         # Read scheduling events from the settings file.
         self._scheduler_event_list = []
