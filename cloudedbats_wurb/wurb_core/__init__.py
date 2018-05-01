@@ -6,11 +6,12 @@
 
 from .wurb_utils import singleton
 
-# WURB Modules.
+# Lib modules.
 from .lib.solartime import SolarTime
 from .lib.dsp4bats.time_domain_utils import SignalUtil 
 from .lib.dsp4bats.frequency_domain_utils import DbfsSpectrumUtil
 
+# WURB Modules.
 from .wurb_sunset_sunrise import WurbSunsetSunrise # Singleton.
 from .wurb_gps_reader import WurbGpsReader # Singleton.
 from .wurb_settings import WurbSettings
@@ -24,7 +25,7 @@ from .wurb_stream_base import SoundSourceBase
 from .wurb_stream_base import SoundProcessBase
 from .wurb_stream_base import SoundTargetBase
 # Special code for Petterson M500. Designed for Windows USB.
-from .pettersson_m500_batmic import PetterssonM500BatMic
+from wurb_core.lib.pettersson_m500_batmic import PetterssonM500BatMic
 
 # Sound data flow from microphone to file.
 from .wurb_recorder import get_device_list
@@ -35,6 +36,7 @@ from .wurb_recorder import SoundProcess
 from .wurb_recorder import SoundTarget
 from .wurb_recorder import WurbRecorder
 
+# Sound detection.
 from .wurb_sound_detector import SoundDetector
 from .wurb_sound_detector import SoundDetectorBase
 from .wurb_sound_detector import SoundDetectorSimple

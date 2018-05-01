@@ -210,12 +210,12 @@ class WurbApplication():
              'new_state': 'rec_auto',  
              'actions': ['rec_stop', 'sleep_1s', 'auto_check_state'] }, 
             # 
-            {'states': ['rec_auto'], 
+            {'states': ['wurb_init', 'rec_auto'], 
              'events': ['scheduler_rec_on'], 
              'new_state': 'rec_auto', 
              'actions': ['rec_start'] }, 
             # 
-            {'states': ['rec_auto'], 
+            {'states': ['wurb_init', 'rec_auto'], 
              'events': ['scheduler_rec_off'], 
              'new_state': 'rec_auto', 
              'actions': ['rec_stop'] }, 

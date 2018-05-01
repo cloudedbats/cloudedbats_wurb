@@ -5,6 +5,7 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import os
+import array
 import logging
 import pathlib
 import math
@@ -118,8 +119,12 @@ class SoundSource(wurb_core.SoundSourceBase):
         
     def read_settings(self):
         """ Called from base class. """
-        # From settings. Defaults for Pettersson M500-384.
-        self._sampling_freq_hz = self._settings.integer('rec_sampling_freq_khz') * 1000
+        if self._settings.text('rec_microphone_type') == 'M500': 
+            # For Pettersson M500. Overrides settings.
+            self._sampling_freq_hz = 500000
+        else:
+            # From settings. Defaults for Pettersson M500-384.
+            self._sampling_freq_hz = self._settings.integer('rec_sampling_freq_khz') * 1000
         # Sound card.
         in_device_name = self._settings.text('rec_part_of_device_name')
         in_device_index = self._settings.integer('rec_device_index') # Default=0. First recognized sound card.
@@ -218,10 +223,15 @@ class SoundSourceM500(SoundSource):
                 self._callback_function('rec_source_error')
             return
         # Main source loop.
-        data = self._m500batmic.read_stream().tostring()
-        while self._active and data:
-            self.push_item((time.time(), data)) # Push time and data buffer.
+        data_array = self._m500batmic.read_stream()
+        while self._active and (len(data_array) > 0):
+            # Push 0.5 sec each time. M500 can't deliver that size directly.
+            if len(data_array) >= 500000:
+                self.push_item((time.time(), data_array[0:500000])) # Push time and data buffer.
+                data_array = data_array[500000:]
+            #
             data = self._m500batmic.read_stream().tostring()
+            data_array.extend(data)
         #
         self._logger.debug('Source M500: Source terminated.')
         self.push_item(None)
@@ -467,9 +477,9 @@ class SoundTarget(wurb_core.SoundTargetBase):
         rec_max_length_s = self._settings.integer('rec_max_length_s')
         self.rec_max_length = rec_max_length_s * 2
         # Different microphone types.
-        if self._settings.boolean('rec_microphone_type') == 'M500':
+        if self._settings.text('rec_microphone_type') == 'M500':
             # For M500 only.
-            if self._settings.boolean('rec_format') == 'TE':
+            if self._settings.text('rec_format') == 'TE':
                 self._filename_rec_type = 'TE500'
                 self._out_sampling_rate_hz = 50000
             else:
