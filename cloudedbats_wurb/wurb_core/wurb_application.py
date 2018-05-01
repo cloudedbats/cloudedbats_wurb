@@ -74,11 +74,14 @@ class WurbApplication():
         # Load default settings for wurb_recorder.
         (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
         self._settings.set_default_values(desc, default, dev)
+        # Load default settings for wurb_scheduler.
+        desc, default, dev = wurb_core.wurb_scheduler.default_settings()
+        self._settings.set_default_values(desc, default, dev)
         # Load default settings for wurb_gps_reader.
         desc, default, dev = wurb_core.wurb_gps_reader.default_settings()
         self._settings.set_default_values(desc, default, dev)
-        # Load default settings for wurb_scheduler.
-        desc, default, dev = wurb_core.wurb_scheduler.default_settings()
+        # Load default settings for wurb_sound_detector.
+        desc, default, dev = wurb_core.wurb_sound_detector.default_settings()
         self._settings.set_default_values(desc, default, dev)
         # Internal and external paths to setting files.
         current_dir = pathlib.Path(__file__).parents[1]

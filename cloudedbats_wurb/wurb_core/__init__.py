@@ -35,9 +35,10 @@ from .wurb_recorder import SoundProcess
 from .wurb_recorder import SoundTarget
 from .wurb_recorder import WurbRecorder
 
+from .wurb_sound_detector import SoundDetector
 from .wurb_sound_detector import SoundDetectorBase
 from .wurb_sound_detector import SoundDetectorSimple
-from .wurb_sound_detector import SoundDetector
+from .wurb_sound_detector import SoundDetectorTest1
 
 # Main app.
 from .wurb_application import WurbApplication

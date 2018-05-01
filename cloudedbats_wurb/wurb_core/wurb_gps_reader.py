@@ -20,7 +20,6 @@ def default_settings():
         generate the wurb_settings_DEFAULT.txt file."""
     
     description = [
-        ' ',
         '# Settings for GPS reader.',
         '# - "timezone": UTC, Europe/Stockholm, etc.',
         '# - "set_time_from_gps": If the Raspberry time should be set from GPS.',

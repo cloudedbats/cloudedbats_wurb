@@ -17,6 +17,50 @@ import pyaudio
 import librosa
 import wurb_core
 
+def default_settings():
+    """ Available settings for the this module.
+        This info is used to define default values and to 
+        generate the wurb_settings_DEFAULT.txt file."""
+    
+    description = [
+        '# Settings for sound detection.',
+        '# Available detector algorithms:',
+        '# - None: Record everything, silence included.',
+        '# - None: Starts when sound above a specified frequency is detected.',
+        '# - Test1: ',
+        ]
+    default_settings = [
+        {'key': 'sound_detector', 'value': 'none'}, # none, simple, test1, ... 
+        ]
+    developer_settings = [
+        {'key': 'filter_min_hz', 'value': '10000'}, 
+        {'key': 'filter_max_hz', 'value': '150000'}, 
+        ]
+    #
+    return description, default_settings, developer_settings
+
+class SoundDetector(object):
+    """ """
+    def __init__(self):
+        """ """
+        self._logger = logging.getLogger('CloudedBatsWURB')
+        self._settings = wurb_core.WurbSettings()
+        
+    def get_detector(self):
+        """ Select detector depending in """
+        sound_detector = self._settings.text('sound_detector')
+        sound_detector = sound_detector.lower()
+        #
+        if sound_detector == 'none':
+            return SoundDetectorNone()
+        elif sound_detector == 'simple':
+            return SoundDetectorSimple()
+        elif sound_detector == 'test1':
+            return SoundDetectorTest1()
+        # Default.
+        return SoundDetectorSimple()
+
+
 class SoundDetectorBase():
     """ """
     def __init__(self, sampling_freq, window_size, debug):
@@ -34,6 +78,18 @@ class SoundDetectorBase():
     
     def check_for_sound(self, time_and_data):
         """ Abstract. """
+        
+class SoundDetectorNone(SoundDetectorBase):
+    """ Used for continous recordings, including silence. """
+    def __init__(self, sampling_freq=384000, window_size=1024, debug=False):
+        """ """
+        super(SoundDetectorNone, self).__init__(sampling_freq, window_size, debug)
+    
+    def check_for_sound(self, _time_and_data):
+        """ """
+        # Always true. 
+        return True
+    
         
 class SoundDetectorSimple(SoundDetectorBase):
     """ """
@@ -85,11 +141,11 @@ class SoundDetectorSimple(SoundDetectorBase):
         #
         return False
         
-class SoundDetector(SoundDetectorBase):
+class SoundDetectorTest1(SoundDetectorBase):
     """ """
     def __init__(self, sampling_freq=384000):
         """ """
-        super(SoundDetector, self).__init__(sampling_freq)
+        super(SoundDetectorTest1, self).__init__(sampling_freq)
 
     def check_for_sound(self, time_and_data):
         """ """

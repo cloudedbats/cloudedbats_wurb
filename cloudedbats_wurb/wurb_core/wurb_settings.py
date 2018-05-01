@@ -156,35 +156,36 @@ class WurbSettings(object):
     def save_last_used_settings(self, file_path):
         """ """
         used_settings = [
+            '',
             '# Settings used during the last ',
             '# execution of CloudedBats WURB.',
-            '#',
+            '',
             '# Standard settings:',
-            '# ',
+            ' ',
             ]
         #
         for key in sorted(self._wurb_settings.keys()):
             if key in self._default_settings:
                 used_settings.append(key + ': ' + str(self._wurb_settings[key]))
         #
-        used_settings.append('# ')
+        used_settings.append(' ')
         used_settings.append('# Scheduler events:')
-        used_settings.append('# ')
+        used_settings.append(' ')
         #
         for row in self._wurb_scheduler_events:
             used_settings.append(row)
         #
-        used_settings.append('# ')
+        used_settings.append(' ')
         used_settings.append('# Development settings:')
-        used_settings.append('# ')
+        used_settings.append(' ')
         #
         for key in sorted(self._wurb_settings.keys()):
             if key in self._developer_settings:
                 used_settings.append(key + ': ' + str(self._wurb_settings[key]))
         #
-        used_settings.append('# ')
+        used_settings.append(' ')
         used_settings.append('# Unrecognised settings:')
-        used_settings.append('# ')
+        used_settings.append(' ')
         #
         for key in sorted(self._wurb_settings.keys()):
             if (key not in self._default_settings) and \

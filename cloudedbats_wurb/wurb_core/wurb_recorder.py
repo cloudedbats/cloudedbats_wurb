@@ -259,8 +259,8 @@ class SoundProcess(wurb_core.SoundProcessBase):
     def process_exec(self):
         """ Called from base class. """
         self._active = True
-        #
-        sound_detector = wurb_core.SoundDetectorSimple(debug=True)
+        # Get sound detector based on user settings.
+        sound_detector = wurb_core.SoundDetector().get_detector()
         #
         silent_buffer = []
         silent_counter = 9999 # Don't send before sound detected.
