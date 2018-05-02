@@ -235,7 +235,12 @@ class WurbScheduler(object):
             else:
                 self._callback_function('scheduler_rec_off')
 
-        # Start main loop.        
+        # The scheduler event times needs to be recalulated 
+        # when used over a long period.
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        tomorrow_at_noon = datetime.datetime.combine(tomorrow, datetime.time(12))
+        
+        # Start main loop. 
         while self._thread_active:
             time_now = datetime.datetime.now().time()
             #
@@ -276,8 +281,10 @@ class WurbScheduler(object):
                     #
                     rec_on_old = self._rec_on
 
-            # Recalculate event times.
-            ### TODO: At midnight...
+            # Restart the scheduler at noon to recalculate event times. 
+            if tomorrow_at_noon < datetime.datetime.now():
+                self._thread_active = False # Terminate thread.
+                self._callback_function('scheduler_restart')
                 
             # Sleep, but exit earlier if externally termined.
             for i in range(10):
@@ -285,29 +292,3 @@ class WurbScheduler(object):
                     return # Terminate thread.
                 time.sleep(1.0)
 
-    def _check_if_rec_is_on(self):
-        """ """
-        
-        pass
-    
-#         try:
-#             # Prefere GPS time.
-#             gps_time = wurb_core.WurbGpsReader().get_time_local()
-#             if gps_time:
-#                 time_now = gps_time.time()
-#             else:
-#                 time_now = datetime.datetime.now().time()
-#             # Start and stop the same day.
-#             if self._start_time < self._stop_time:
-#                 if (time_now >= self._start_time) and (time_now <= self._stop_time):
-#                     self._rec_on = True
-#                 else: 
-#                     self._rec_on = False
-#             else: # Stop the day after.
-#                 if (time_now >= self._stop_time) and (time_now <= self._start_time):
-#                     self._rec_on = False
-#                 else: 
-#                     self._rec_on = True   
-#         #
-#         except Exception as e:
-#             self._logger.error('Scheduler: Exception: ' + str(e))

@@ -176,6 +176,10 @@ class WurbApplication():
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
             #
+            elif action == 'restart_scheduler':
+                time.sleep(1.0)
+                self._scheduler.start()
+            #
             elif action == 'sleep_1s':
                 time.sleep(1.0)
             elif action == 'sleep_10s':
@@ -220,6 +224,11 @@ class WurbApplication():
              'events': ['scheduler_rec_off'], 
              'new_state': 'rec_auto', 
              'actions': ['rec_stop'] }, 
+            # 
+            {'states': ['*'], 
+             'events': ['scheduler_restart'], 
+             'new_state': '*', 
+             'actions': ['restart_scheduler'] }, 
             # Test.
             {'states': ['*'], 
              'events': ['rec_source_warning', 'rec_target_warning'], 
