@@ -1,19 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding:utf-8 -*-
 # Project: http://cloudedbats.org
-# Copyright (c) 2016-2018 Arnold Andreasson 
+# Copyright (c) 2017-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
-from __future__ import unicode_literals
 
 import time
 import queue
 import threading
 
-class WurbSoundStreamManager(object):
+class SoundStreamManager(object):
     """ Manager class for sound processing. 
         The module also contains base classes for sources, processing 
         algorithms and targets. All parts are running in separate 
-        threads joined together by queues. 
+        threads connected by queues. 
         Dataflow:
             Source ---> Queue ---> Process ---> Queue ---> Target 
     """
@@ -39,7 +38,7 @@ class WurbSoundStreamManager(object):
         self._process_thread = None
         self._target_thread = None
          
-    def start_streaming(self):
+    def start_streaming(self, start_delay_s=2.0):
         """ """
         # Start target in thread.
         self._target_thread = threading.Thread(target=self._target.target_exec, args=[])
@@ -49,9 +48,10 @@ class WurbSoundStreamManager(object):
         self._process_thread.start()
         # Start source in thread.
         self._source_thread = threading.Thread(target=self._source.source_exec, args=[])
-        
-        time.sleep(2)
-        
+        #
+        if start_delay_s:
+            time.sleep(start_delay_s) 
+        #
         self._source_thread.start()
 
     def stop_streaming(self, stop_immediate=False):
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     source = SoundSourceBase()
     process = SoundProcessBase()
     target = SoundTargetBase()
-    stream_manager = WurbSoundStreamManager(
+    stream_manager = SoundStreamManager(
                         source, 
                         process, 
                         target,

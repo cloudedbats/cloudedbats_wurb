@@ -22,6 +22,7 @@ class WurbApplication():
         wurb_core.WurbLogging().setup(usb_memory_used = self._usb_memory_used)
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._logger.info('')
+        self._logger.info('')
         self._logger.info('Welcome to CloudedBats-WURB')
         self._logger.info('Project page: http://cloudedbats.org')
         self._logger.info('=============== ^ö^ ================')

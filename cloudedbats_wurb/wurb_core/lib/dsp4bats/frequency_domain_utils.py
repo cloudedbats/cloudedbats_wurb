@@ -7,7 +7,7 @@
 import numpy as np
 import scipy.signal
 
-from numba import jit
+# from numba import jit
 
 class DbfsSpectrumUtil():
     """ """

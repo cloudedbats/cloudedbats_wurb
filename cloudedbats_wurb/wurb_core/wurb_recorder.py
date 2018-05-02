@@ -93,7 +93,7 @@ class WurbRecorder(object):
         # - Target.
         self._sound_target = wurb_core.SoundTarget(callback_function=self._callback_function)
         # - Manager.
-        self._sound_manager = wurb_core.WurbSoundStreamManager(
+        self._sound_manager = wurb_core.SoundStreamManager(
                                     self._sound_source, 
                                     self._sound_process, 
                                     self._sound_target)
