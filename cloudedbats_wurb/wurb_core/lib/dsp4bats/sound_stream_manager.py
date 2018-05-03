@@ -38,8 +38,28 @@ class SoundStreamManager(object):
         self._process_thread = None
         self._target_thread = None
          
-    def start_streaming(self, start_delay_s=2.0):
+    def start_streaming(self, start_delay_s=0.0):
         """ """
+        # Stop if already running.
+        self.stop_streaming(stop_immediate=True)
+        # Wait until all threads are finished.
+        if self._source_thread:
+            while self._source_thread.is_alive():
+                # print('DEBUG: SOURCE ALIVE----------------------------------------------')
+                time.sleep(0.2)
+        if self._process_thread:
+            while self._process_thread.is_alive():
+                # print('DEBUG: PROCESS ALIVE----------------------------------------------')
+                time.sleep(0.2)
+        if self._target_thread:
+            while self._target_thread.is_alive():
+                # print('DEBUG: TARGET ALIVE----------------------------------------------')
+                time.sleep(0.2)
+        
+        # Clear all queues.
+        self._source.clear_queue()
+        self._process.clear_queue()
+        self._target.clear_queue()
         # Start target in thread.
         self._target_thread = threading.Thread(target=self._target.target_exec, args=[])
         self._target_thread.start()
@@ -58,12 +78,9 @@ class SoundStreamManager(object):
         """ """
         if stop_immediate:
             # Stop all.
-#             self._source.stop()
-#             self._process.stop()
-#             self._target.stop()
-            self._target.stop()
-            self._process.stop()
-            self._source.stop()
+            self._source.stop(release_thread=True)
+            self._process.stop(release_thread=True)
+            self._target.stop(release_thread=True)
         else:
             # Stop source only. 
             self._source.stop()
@@ -89,9 +106,22 @@ class SoundSourceBase(object):
         else:
             self.source_queue.put(item, block=True, timeout=None)
     
-    def stop(self):
+    def stop(self, release_thread=False):
         """ """
         self._active = False
+        if release_thread:
+            if self.source_queue:
+                self.clear_queue()
+                item = None
+                self.source_queue.put(item, block=False, timeout=None)
+
+    def clear_queue(self):
+        """ """
+        while not self.source_queue.empty():
+            try:
+                self.source_queue.get(block=False)
+            except:
+                pass
     
     def source_exec(self):
         """ Abstract method. Override in subclass. """
@@ -131,9 +161,31 @@ class SoundProcessBase(object):
         """ """
         self.target_queue.put(item, block=True, timeout=None)
     
-    def stop(self):
+    def stop(self, release_thread=False):
         """ """
         self._active = False
+        if release_thread:
+            if self.source_queue:
+                self.clear_queue()
+                # Release if blocking on queue.
+                item = None
+                try:
+                    self.source_queue.put(item, block=False, timeout=None)
+                except:
+                    pass
+    
+    def clear_queue(self):
+        """ """
+        while not self.source_queue.empty():
+            try:
+                self.source_queue.get(block=False)
+            except:
+                pass
+        while not self.target_queue.empty():
+            try:
+                self.target_queue.get(block=False)
+            except:
+                pass
     
     def process_exec(self):
         """ Abstract method. Override in subclass. """
@@ -165,9 +217,26 @@ class SoundTargetBase(object):
         """ """
         return self.target_queue.get()
         
-    def stop(self):
+    def stop(self, release_thread=False):
         """ """
         self._active = False
+        if release_thread:
+            if self.target_queue:
+                self.clear_queue()
+                # Release if blocking on queue.
+                item = None
+                try:
+                    self.target_queue.put(item, block=False, timeout=None)
+                except:
+                    pass
+    
+    def clear_queue(self):
+        """ """
+        while not self.target_queue.empty():
+            try:
+                self.target_queue.get(block=False)
+            except:
+                pass
     
     def target_exec(self):
         """ Abstract method. Override in subclass. """

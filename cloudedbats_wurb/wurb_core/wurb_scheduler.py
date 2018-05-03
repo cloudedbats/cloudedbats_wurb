@@ -131,12 +131,12 @@ class WurbScheduler(object):
                         self._logger.info('Scheduler: Waiting for GPS was terminated.')
                         break
                     #
-                    time.sleep(5.0)
+                    time.sleep(2.0)
                     gps_local_time = wurb_core.WurbGpsReader().get_time_local()
                     gps_latitude = wurb_core.WurbGpsReader().get_latitude()
                     gps_longitude = wurb_core.WurbGpsReader().get_longitude()
                 #
-                self._logger.info('Scheduler: Received GPS time and position.')            
+                self._logger.info('Scheduler: Received time and position.')            
             #
             if gps_local_time:
                 self._local_time = gps_local_time

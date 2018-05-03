@@ -77,8 +77,12 @@ class WurbRecorder(object):
         self._callback_function = callback_function
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._settings = wurb_core.WurbSettings()
+        #
+        self._sound_manager = None
+#         self._is_recording = False
         
     def setup_sound_manager(self):
+        """ """
         # Sound stream parts:
         # - Source
         self._sound_source = None
@@ -97,8 +101,26 @@ class WurbRecorder(object):
                                     self._sound_source, 
                                     self._sound_process, 
                                     self._sound_target)
-        
-        return self._sound_manager
+
+    def start_recording(self):
+        """ """
+#         if self._is_recording == True:
+#             return
+        #
+        if self._sound_manager:
+            self._sound_manager.start_streaming()
+#             #
+#             self._is_recording = True
+
+    def stop_recording(self, stop_immediate=False):
+        """ """
+#         if self._is_recording == False:
+#             return
+        #
+        if self._sound_manager:
+            self._sound_manager.stop_streaming(stop_immediate)
+#             #
+#             self._is_recording = False
 
 
 class SoundSource(wurb_core.SoundSourceBase):
@@ -163,20 +185,26 @@ class SoundSource(wurb_core.SoundSourceBase):
         if self._stream is None:
             self._setup_pyaudio()
         #
-        self._active = True
-        self._stream_active = True
-        self._stream.start_stream()
+        if self._stream: 
+            self._active = True
+            self._stream_active = True
+            self._stream.start_stream()
+        else:
+            self._logger.error('Recorder: Failed to read stream.')
+            return
         #
         buffer_size = int(self._sampling_freq_hz / 2)
+        
+        # print('DEBUG: Source started-----------------------------------------------')
         
         # Main source loop.
         try:
             data = self._stream.read(buffer_size) #, exception_on_overflow=False)
             while self._active and data:
                 
-                print('Sound buffer read at: ', str(time.time()), '   Length: ', len(data))
-                print('Sound buffer read at: ', self._stream.get_time(), ' (pyaudio time)')
-                print('')
+#                 print('Sound buffer read at: ', str(time.time()), '   Length: ', len(data))
+#                 print('Sound buffer read at: ', self._stream.get_time(), ' (pyaudio time)')
+#                 print('')
                 
                 self.push_item((time.time(), data)) # Push time and data buffer.
                 data = self._stream.read(buffer_size) #, exception_on_overflow=False)
@@ -270,48 +298,69 @@ class SoundProcess(wurb_core.SoundProcessBase):
         """ Called from base class. """
         self._active = True
         # Get sound detector based on user settings.
-        sound_detector = wurb_core.SoundDetector().get_detector()
+        sound_detector = None
+        try:
+            sound_detector = wurb_core.SoundDetector().get_detector()
+        except Exception as e:
+            print('DEBUG:  Get sound detection exception: ', str(e))
+        
+        # print('DEBUG: Process started-----------------------------------------------')
+
+        
+        sound_detected = False
         #
         silent_buffer = []
         silent_counter = 9999 # Don't send before sound detected.
         
         while self._active:
-            time_and_data = self.pull_item()
-
-            if time_and_data is None:
-                self._logger.debug('Process terminated.')
-                self._active = False
-                # Terminated by previous step.
-                self.push_item(None)
-            else:
-#                 self.process_buffer(raw_data)
-                sound_detected = sound_detector.check_for_sound(time_and_data)
-                ###sound_detected = self._sound_analysis(time_and_data)
-                if sound_detected:
-                    # Send pre buffer if this is the first one.
-                    if len(silent_buffer) > 0:
-                        for silent_time_and_data in silent_buffer:
-                            self.push_item(silent_time_and_data)
-                        #
-                        silent_buffer = []
-                    # Send buffer.    
-                    self.push_item(time_and_data)
-                    silent_counter = 0
+            try:
+                time_and_data = self.pull_item()
+    
+                if time_and_data is None:
+                    self._logger.debug('Rec-process terminated.')
+                    self._active = False
+                    # Terminated by previous step.
+                    self.push_item(None)
                 else:
-                    if silent_counter < 1: # Unit 0.5 sec.
-                        # Send after sound detected.
+    #                 self.process_buffer(raw_data)
+                    try:
+                        sound_detected = sound_detector.check_for_sound(time_and_data)
+                    except Exception as e:
+                        print('DEBUG:  Sound detection exception: ', str(e))
+                    ###sound_detected = self._sound_analysis(time_and_data)
+                    if sound_detected:
+                        
+                        print('DEBUG: Sound detected.')
+                        
+                        # Send pre buffer if this is the first one.
+                        if len(silent_buffer) > 0:
+                            for silent_time_and_data in silent_buffer:
+                                self.push_item(silent_time_and_data)
+                            #
+                            silent_buffer = []
+                        # Send buffer.    
                         self.push_item(time_and_data)
-                        silent_counter += 1
-                    elif silent_counter < 4: # Unit 0.5 sec.
-                        # Accept 
-                        silent_buffer.append(time_and_data)
-                        silent_counter += 1
+                        silent_counter = 0
                     else:
-                        # Silent, but store in pre buffer.
-                        self.push_item(False)
-                        silent_buffer.append(time_and_data)
-                        while len(silent_buffer) > 1: # Unit 0.5sec.
-                            silent_buffer.pop(0)
+                        
+                        print('DEBUG: Sound not detected. Counter: ', silent_counter)
+                        
+                        if silent_counter < 1: # Unit 0.5 sec.
+                            # Send after sound detected.
+                            self.push_item(time_and_data)
+                            silent_counter += 1
+                        elif silent_counter < 4: # Unit 0.5 sec.
+                            # Accept 
+                            silent_buffer.append(time_and_data)
+                            silent_counter += 1
+                        else:
+                            # Silent, but store in pre buffer.
+                            self.push_item(False)
+                            silent_buffer.append(time_and_data)
+                            while len(silent_buffer) > 1: # Unit 0.5sec.
+                                silent_buffer.pop(0)
+            except Exception as e:
+                print('DEBUG: Sound process_exec exception: ', str(e))
                     
 #     def _sound_analysis(self, time_and_data):
 #         """ """
@@ -507,6 +556,9 @@ class SoundTarget(wurb_core.SoundTargetBase):
         item_list = []
         item_list_max = 5 # Unit 0.5 sec. Before flush to file.
         item_counter = 0
+
+        # print('DEBUG: Target started-----------------------------------------------')
+        
         #
         try:
             while self._active:

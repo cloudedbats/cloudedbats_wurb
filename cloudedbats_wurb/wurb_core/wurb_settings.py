@@ -45,11 +45,11 @@ class WurbSettings(object):
         value = 'F'
         if key in self._wurb_settings:
             value = self._wurb_settings.get(key)
-        #
-        if value.lower() in ['yes', 'no', 'y', 'n', 'true', 'false', 't', 'f']:
+        # Return Boolean.        
+        if value.lower() in ['yes', 'y', 'true', 't']:
             return True
-        # Return Boolean.
-        return False
+        else:
+            return False
 
     def integer(self, key):
         """ """
@@ -108,9 +108,7 @@ class WurbSettings(object):
                 self._developer_settings[row['key']] = row['value']
                 if 'valid' in row:
                     self._valid_settings[row['key']] = row['valid']
-                
-        print('DEBUG')
-        
+    
     def load_settings(self, file_path):
         """ """
         if not file_path.exists():

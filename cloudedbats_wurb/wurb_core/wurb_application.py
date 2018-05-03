@@ -125,7 +125,8 @@ class WurbApplication():
         # Initiate sound recorder.
         self._logger.info('')
         self._logger.info('=== Sound recorder startup. ===')
-        self._sound_manager = wurb_core.WurbRecorder().setup_sound_manager()
+        self._recorder = wurb_core.WurbRecorder()
+        self._recorder.setup_sound_manager()
         
         # Control-GPIO. Connected by callback.
         self._logger.info('')
@@ -149,7 +150,7 @@ class WurbApplication():
         """ """
         # Stop modules.
         wurb_core.WurbGpsReader().stop()
-        if self._sound_manager: self._sound_manager.stop_streaming(stop_immediate=True)
+        if self._recorder: self._recorder.stop_recording(stop_immediate=True)
         if self._gpio_ctrl: self._gpio_ctrl.stop()
         if self._mouse_ctrl: self._mouse_ctrl.stop()
         if self._scheduler: self._scheduler.stop()
@@ -168,10 +169,10 @@ class WurbApplication():
                 pass
             #
             elif action == 'rec_start':
-                self._sound_manager.start_streaming()
+                self._recorder.start_recording()
             #
             elif action == 'rec_stop':
-                self._sound_manager.stop_streaming() #(stop_immediate=True)
+                self._recorder.stop_recording() #(stop_immediate=True)
             #
             elif action == 'auto_check_state':
                 self._scheduler.check_state()
@@ -200,17 +201,17 @@ class WurbApplication():
         """ """
         state_machine_data = [
             # 
-            {'states': ['wurb_init', 'rec_auto', 'rec_off'], 
+            {'states': ['wurb_init', 'rec_auto', 'rec_off', 'rec_on'], 
              'events': ['gpio_rec_on', 'mouse_rec_on', 'test_rec_on'], 
              'new_state': 'rec_on', 
              'actions': ['rec_stop', 'rec_start'] }, 
             # 
-            {'states': ['wurb_init', 'rec_auto', 'rec_on'], 
+            {'states': ['wurb_init', 'rec_auto', 'rec_on', 'rec_off'], 
              'events': ['gpio_rec_off', 'mouse_rec_off', 'test_rec_off'], 
              'new_state': 'rec_off',  
              'actions': ['rec_stop'] }, 
             # 
-            {'states': ['wurb_init', 'rec_on', 'rec_off'], 
+            {'states': ['wurb_init', 'rec_on', 'rec_off', 'rec_auto'], 
              'events': ['gpio_rec_auto', 'mouse_rec_auto', 'test_rec_auto'], 
              'new_state': 'rec_auto',  
              'actions': ['rec_stop', 'sleep_1s', 'auto_check_state'] }, 

@@ -17,10 +17,13 @@ if __name__ == "__main__":
 
 # TODO: For development.
     import time
+    print('TEST - Started')
     time.sleep(1.0)
     wurb_app.perform_event('test_rec_on')
-    time.sleep(25.5) 
+    time.sleep(5.5) 
+    wurb_app.perform_event('test_rec_on')
+    time.sleep(15.5) 
     wurb_app.perform_event('test_rec_off')
     time.sleep(0.1)
     wurb_app.stop()
-    print('TEST - Ended')
+    print('TEST - Finished')
