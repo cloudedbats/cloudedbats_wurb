@@ -4,7 +4,6 @@
 # Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
 import time
 import datetime
 import logging
@@ -78,11 +77,12 @@ class WurbScheduler(object):
         if len(self._scheduler_event_list) == 0:
             return
         #
-        self._read_gps_time_and_pos()
-        self._calculate_event_times()
-        #
         try:
             self._thread_active = True
+            #
+            self._read_gps_time_and_pos()
+            self._calculate_event_times()
+            #
             self._scheduler_thread = threading.Thread(target = self._scheduler_exec, args = [])
             self._scheduler_thread.start()
         except Exception as e:
@@ -135,14 +135,13 @@ class WurbScheduler(object):
                     gps_local_time = wurb_core.WurbGpsReader().get_time_local()
                     gps_latitude = wurb_core.WurbGpsReader().get_latitude()
                     gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-                #
-                self._logger.info('Scheduler: Received time and position.')            
             #
             if gps_local_time:
+                self._logger.info('Scheduler: Time received from GPS.')            
                 self._local_time = gps_local_time
-            if gps_latitude:
+            if gps_latitude and gps_longitude:
+                self._logger.info('Scheduler: Position received from GPS.')            
                 self._latitude = gps_latitude
-            if gps_longitude:
                 self._longitude = gps_longitude
 
     def _calculate_event_times(self):

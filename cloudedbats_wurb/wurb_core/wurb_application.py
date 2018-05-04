@@ -87,7 +87,7 @@ class WurbApplication():
         # Internal and external paths to setting files.
         current_dir = pathlib.Path(__file__).parents[1]
         internal_path = pathlib.Path(current_dir, 'wurb_settings')
-        external_path = '/media/usb0/cloudedbats_wurb/settings'
+        external_path = pathlib.Path('/media/usb0/cloudedbats_wurb/settings')
         internal_setting_path = pathlib.Path(internal_path, 'user_settings.txt')
         # Create directories.
         if not internal_path.exists():
