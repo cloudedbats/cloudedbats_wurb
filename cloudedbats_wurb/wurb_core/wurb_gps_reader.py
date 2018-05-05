@@ -20,15 +20,11 @@ def default_settings():
         generate the wurb_settings_DEFAULT.txt file."""
     
     description = [
-        '# Settings for GPS reader.',
-        '# - "timezone": UTC, Europe/Stockholm, etc.',
-        '# - "set_time_from_gps": If the Raspberry time should be set from GPS.',
+        '# Settings for the GPS reader.',
         ]
     default_settings = [
         {'key': 'timezone', 'value': 'UTC'}, 
-        # Hardware.
-        {'key': 'set_time_from_gps', 'value': 'False', 
-         'valid': ['Yes', 'No', 'Y', 'N', 'False', 'True', 'F', 'T']}, # STD-USB, M500
+        {'key': 'set_time_from_gps', 'value': 'Y'},
         ]
     developer_settings = [
         {'key': 'gps_reader_port', 'value': '2947'}, 

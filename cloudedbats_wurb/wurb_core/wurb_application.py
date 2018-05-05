@@ -23,7 +23,7 @@ class WurbApplication():
         self._logger = logging.getLogger('CloudedBatsWURB')
         self._logger.info('')
         self._logger.info('')
-        self._logger.info('Welcome to CloudedBats-WURB')
+        self._logger.info('Welcome to CloudedBats WURB')
         self._logger.info('Project page: http://cloudedbats.org')
         self._logger.info('=============== ^ö^ ================')
         
@@ -72,6 +72,13 @@ class WurbApplication():
         self._logger.info('')
         self._logger.info('=== Setting startup. ===')
         self._settings = wurb_core.WurbSettings()
+        desc = [
+            '# ',
+            '# Default settings for CloudedBats WURB.',
+        	'# Check the file "cloudedbats_wurb/README.txt" for more info.',
+            '# ',
+        ]
+        self._settings.set_default_values(desc, [], [])
         # Load default settings for wurb_recorder.
         (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
         self._settings.set_default_values(desc, default, dev)
@@ -109,6 +116,9 @@ class WurbApplication():
         self._settings.save_default_settings(pathlib.Path(internal_path, 'user_settings_DEFAULT.txt'))
         self._settings.save_last_used_settings(pathlib.Path(internal_path, 'user_settings_LAST_USED.txt'))
         if self._usb_memory_used:
+            self._logger.info('Settings: Copying settings files and readme.txt to USB')
+            shutil.copy(str(pathlib.Path(current_dir, 'wurb_core/README.txt')), 
+                        str(pathlib.Path(external_path.parent, 'README.txt')))
             self._settings.save_default_settings(pathlib.Path(external_path, 'user_settings_DEFAULT.txt'))
             self._settings.save_last_used_settings(pathlib.Path(external_path, 'user_settings_LAST_USED.txt'))
         

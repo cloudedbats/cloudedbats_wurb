@@ -45,21 +45,19 @@ class SoundStreamManager(object):
         # Wait until all threads are finished.
         if self._source_thread:
             while self._source_thread.is_alive():
-                # print('DEBUG: SOURCE ALIVE----------------------------------------------')
                 time.sleep(0.2)
         if self._process_thread:
             while self._process_thread.is_alive():
-                # print('DEBUG: PROCESS ALIVE----------------------------------------------')
                 time.sleep(0.2)
         if self._target_thread:
             while self._target_thread.is_alive():
-                # print('DEBUG: TARGET ALIVE----------------------------------------------')
                 time.sleep(0.2)
         
         # Clear all queues.
         self._source.clear_queue()
         self._process.clear_queue()
         self._target.clear_queue()
+        
         # Start target in thread.
         self._target_thread = threading.Thread(target=self._target.target_exec, args=[])
         self._target_thread.start()

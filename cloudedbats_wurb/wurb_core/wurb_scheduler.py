@@ -16,8 +16,7 @@ def default_settings():
         generate the wurb_settings_DEFAULT.txt file."""
     
     description = [
-        '# Settings for the WURB scheduler.',
-        '# Default for latitude/longitude in the decimal degree format.',
+        '# Settings for the scheduler.',
         ]
     default_settings = [
         {'key': 'scheduler_use_gps', 'value': 'N'},

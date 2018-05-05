@@ -6,7 +6,12 @@
 
 import numpy as np
 import scipy.signal
-import librosa
+# Check if librosa is available.
+librosa_available = False
+try:
+    import librosa
+    librosa_available = True
+except: pass
 
 class SignalUtil():
     """ """
@@ -64,6 +69,11 @@ class SignalUtil():
                       jump=None, 
                       frame_length=1024):
         """ """
+        if not librosa_available:
+            print('ERROR: Error in find_localmax. Librosa not installed.')
+            index_list = []
+            return index_list
+        
         # Adjust for comparable results for low sampling rates.
         if self.sampling_freq < 300000:
             frame_length = int(frame_length / 2) 

@@ -8,8 +8,13 @@ from .wurb_utils import singleton
 
 # Lib modules.
 from .lib.solartime import SolarTime
-from .lib.dsp4bats.time_domain_utils import SignalUtil 
 from .lib.dsp4bats.frequency_domain_utils import DbfsSpectrumUtil
+# # Check if librosa is available.
+# try:
+#     import librosa
+#     from .lib.dsp4bats.time_domain_utils import SignalUtil 
+# except: pass
+
 # Base classes for sound streaming.
 from .lib.dsp4bats.sound_stream_manager import SoundStreamManager
 from .lib.dsp4bats.sound_stream_manager import SoundSourceBase
@@ -37,9 +42,6 @@ from .wurb_recorder import WurbRecorder
 
 # Sound detection.
 from .wurb_sound_detector import SoundDetector
-from .wurb_sound_detector import SoundDetectorBase
-from .wurb_sound_detector import SoundDetectorSimple
-from .wurb_sound_detector import SoundDetectorTest1
 
 # Main app.
 from .wurb_application import WurbApplication
