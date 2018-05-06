@@ -6,9 +6,7 @@
 
 import os
 import logging
-import math
 import time
-import numpy as np
 import wave
 import pyaudio
 import wurb_core
@@ -24,15 +22,14 @@ def default_settings():
     default_settings = [
         {'key': 'rec_directory_path', 'value': '/media/usb0/wurb1_rec'}, 
         {'key': 'rec_filename_prefix', 'value': 'WURB1'},
-        {'key': 'rec_max_length_s', 'value': '10'},
-        {'key': 'rec_sampling_freq_khz', 'value': '384'}, 
-        {'key': 'rec_format', 'value': 'TE'}, # TE=Time Expansion, FS=Full Scan.        
+        {'key': 'rec_format', 'value': 'TE'}, # "TE" (Time Expansion) ot "FS" (Full Scan).        
+        {'key': 'rec_max_length_s', 'value': '20'},
+        {'key': 'rec_buffers_s', 'value': 2.0}, # Pre- and post detected sound buffer size.
         # Hardware.
-        {'key': 'rec_microphone_type', 'value': 'STD-USB', 
-                'valid': ['STD-USB', 'M500']}, # STD-USB, M500
-        {'key': 'rec_part_of_device_name', 'value': 'Pettersson'}, # Example: 'Pettersson'.
-        {'key': 'rec_device_index', 'value': 0},
-        {'key': 'rec_buffers_s', 'value': 2.0},
+        {'key': 'rec_sampling_freq_khz', 'value': '384'}, 
+        {'key': 'rec_microphone_type', 'value': 'STD-USB'}, # "STD-USB" or "M500".
+        {'key': 'rec_part_of_device_name', 'value': 'Pettersson'}, 
+        {'key': 'rec_device_index', 'value': 0}, # Not used if "rec_part_of_device_name" is found.
         ]
     developer_settings = [
         {'key': 'rec_source_debug', 'value': 'N'}, 
@@ -177,18 +174,27 @@ class SoundSource(wurb_core.SoundSourceBase):
         if self._stream: 
             self._active = True
             self._stream_active = True
+            self._stream_time_s = time.time()
             self._stream.start_stream()
         else:
             self._logger.error('Recorder: Failed to read stream.')
             return
-        #
+        # 
         buffer_size = int(self._sampling_freq_hz / 2)
         
         # Main source loop.
         try:
             data = self._stream.read(buffer_size) #, exception_on_overflow=False)
             while self._active and data:
-                self.push_item((time.time(), data)) # Push time and data buffer.
+                # Add time and check for time drift.
+                self._stream_time_s += 0.5 # One buffer is 0.5 sec.
+                if (self._stream_time_s > (time.time() + 10)) or \
+                   (self._stream_time_s < (time.time() - 10)):
+                    self._stream_time_s = time.time()
+                    self._logger.warning('Recorder: Rec. time adjusted.')
+                # Push time and data buffer.
+                self.push_item((self._stream_time_s, data)) 
+                #
                 data = self._stream.read(buffer_size) #, exception_on_overflow=False)
         except Exception as e:
             self._logger.error('Recorder: Failed to read stream: ' + str(e))
@@ -223,6 +229,7 @@ class SoundSourceM500(SoundSource):
             #
             self._stream_active = True
             #
+            self._stream_time_s = time.time()
             self._m500batmic.start_stream()
             self._m500batmic.led_on()            
 
@@ -237,7 +244,14 @@ class SoundSourceM500(SoundSource):
         while self._active and (len(data_array) > 0):
             # Push 0.5 sec each time. M500 can't deliver that size directly.
             if len(data_array) >= 500000:
-                self.push_item((time.time(), data_array[0:500000])) # Push time and data buffer.
+                # Add time and check for time drift.
+                self._stream_time_s += 0.5 # One buffer is 0.5 sec.
+                if (self._stream_time_s > (time.time() + 10)) or \
+                   (self._stream_time_s < (time.time() - 10)):
+                    self._stream_time_s = time.time()
+                    self._logger.warning('Recorder: Rec. time adjusted.')
+                # Push time and data buffer.
+                self.push_item((self._stream_time_s, data_array[0:500000])) 
                 data_array = data_array[500000:]
             #
             data = self._m500batmic.read_stream().tostring()
@@ -276,9 +290,6 @@ class SoundProcess(wurb_core.SoundProcessBase):
         sound_detected = False
         #
         buffer_size = int(self._rec_buffers_s * 2.0) # Buffers are of 0.5 sec length.
-        
-        print('buffer_size: ', buffer_size)
-        
         #
         silent_buffer = []
         silent_counter = 9999 # Don't send before sound detected.
@@ -350,7 +361,7 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._dir_path = self._settings.text('rec_directory_path')
         self._filename_prefix = self._settings.text('rec_filename_prefix')
         rec_max_length_s = self._settings.integer('rec_max_length_s')
-        self.rec_max_length = rec_max_length_s * 2
+        self._rec_max_length = rec_max_length_s * 2
         # Different microphone types.
         if self._settings.text('rec_microphone_type') == 'M500':
             # For M500 only.
@@ -402,6 +413,7 @@ class SoundTarget(wurb_core.SoundTargetBase):
                         # Close.
                         wave_file_writer.close()
                         wave_file_writer = None
+                        item_counter = 0
                     #
                     continue
                 
@@ -414,7 +426,7 @@ class SoundTarget(wurb_core.SoundTargetBase):
                         wave_file_writer = WaveFileWriter(self)
                         
                     # Check if max rec length was reached.
-                    if item_counter >= self.rec_max_length: 
+                    if item_counter >= self._rec_max_length: 
                         if wave_file_writer:
                             # Flush buffer.
                             joined_items = b''.join(item_list)
