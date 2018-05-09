@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 # Project: http://cloudedbats.org
-# Copyright (c) 2016-2017 Arnold Andreasson 
+# Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 from gps3 import gps3
@@ -13,6 +13,24 @@ import dateutil.parser
 import threading
 import logging
 import wurb_core
+
+def default_settings():
+    """ Available settings for the this module.
+        This info is used to define default values and to 
+        generate the wurb_settings_DEFAULT.txt file."""
+    
+    description = [
+        '# Settings for the GPS reader.',
+        ]
+    default_settings = [
+        {'key': 'timezone', 'value': 'UTC'}, 
+        {'key': 'set_time_from_gps', 'value': 'Y'},
+        ]
+    developer_settings = [
+        {'key': 'gps_reader_port', 'value': '2947'}, 
+        ]
+    #
+    return description, default_settings, developer_settings
 
 @wurb_core.singleton
 class WurbGpsReader(object):
@@ -32,11 +50,11 @@ class WurbGpsReader(object):
         # Use clear to initiate class members.
         self._clear()
         # Default port for GPSD.
-        self._gpsd_port = self._settings.get_value('gps_reader_gpsd_port', '2947')
+        self._gpsd_port = self._settings.integer('gps_reader_port')
         # Default timezone.
-        self._timezone = pytz.timezone(self._settings.get_value('timezone', 'UTC'))
+        self._timezone = pytz.timezone(self._settings.text('timezone'))
         # Use GPS time for Raspberry Pi.
-        self._set_rpi_time_from_gps = self._settings.get_value('gps_reader_set_rpi_time_from_gps', 'False')
+        self._set_rpi_time_from_gps = self._settings.boolean('set_time_from_gps')
         # 
         self._debug = False
     

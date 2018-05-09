@@ -1,15 +1,36 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 # Project: http://cloudedbats.org
-# Copyright (c) 2016-2017 Arnold Andreasson 
+# Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
 import time
 import datetime
 import logging
 import threading
 import wurb_core
+
+def default_settings():
+    """ Available settings for the this module.
+        This info is used to define default values and to 
+        generate the wurb_settings_DEFAULT.txt file."""
+    
+    description = [
+        '# Settings for the scheduler.',
+        ]
+    default_settings = [
+        {'key': 'scheduler_use_gps', 'value': 'N'},
+        {'key': 'scheduler_wait_for_gps', 'value': 'N'},  
+        {'key': 'default_latitude', 'value': '0.0'}, 
+        {'key': 'default_longitude', 'value': '0.0'},
+        #
+        {'key': 'scheduler_event', 'value': 'scheduler_rec_on/sunset/-10'},
+        {'key': 'scheduler_event', 'value': 'scheduler_rec_off/sunrise/+10'},
+        ]
+    developer_settings = [
+        ]
+    #
+    return description, default_settings, developer_settings
 
 class WurbScheduler(object):
     """ 
@@ -55,11 +76,12 @@ class WurbScheduler(object):
         if len(self._scheduler_event_list) == 0:
             return
         #
-        self._read_gps_time_and_pos()
-        self._calculate_event_times()
-        #
         try:
             self._thread_active = True
+            #
+            self._read_gps_time_and_pos()
+            self._calculate_event_times()
+            #
             self._scheduler_thread = threading.Thread(target = self._scheduler_exec, args = [])
             self._scheduler_thread.start()
         except Exception as e:
@@ -72,15 +94,15 @@ class WurbScheduler(object):
     def _read_settings(self):
         """ """
         # GPS usage.
-        self._use_gps = self._settings.get_value('scheduler_use_gps', 'False')
-        self._wait_for_gps_at_startup = self._settings.get_value('scheduler_wait_for_gps_at_startup', 'False')
+        self._use_gps = self._settings.boolean('scheduler_use_gps')
+        self._wait_for_gps_at_startup = self._settings.boolean('scheduler_wait_for_gps')
         # Default for latitude/longitude in the decimal degree format.
-        self._latitude = float(self._settings.get_value('default_latitude', '0.0'))
-        self._longitude = float(self._settings.get_value('default_longitude', '0.0'))
+        self._latitude = float(self._settings.float('default_latitude'))
+        self._longitude = float(self._settings.float('default_longitude'))
         
         # Read scheduling events from the settings file.
         self._scheduler_event_list = []
-        for event in self._settings.get_scheduler_events():
+        for event in self._settings.scheduler_events():
             event_parts = event.split('/')
             if len(event_parts) >= 2:
                 event_dict = {}
@@ -108,18 +130,17 @@ class WurbScheduler(object):
                         self._logger.info('Scheduler: Waiting for GPS was terminated.')
                         break
                     #
-                    time.sleep(5.0)
+                    time.sleep(2.0)
                     gps_local_time = wurb_core.WurbGpsReader().get_time_local()
                     gps_latitude = wurb_core.WurbGpsReader().get_latitude()
                     gps_longitude = wurb_core.WurbGpsReader().get_longitude()
-                #
-                self._logger.info('Scheduler: Received GPS time and position.')            
             #
             if gps_local_time:
+                self._logger.info('Scheduler: Time received from GPS.')            
                 self._local_time = gps_local_time
-            if gps_latitude:
+            if gps_latitude and gps_longitude:
+                self._logger.info('Scheduler: Position received from GPS.')            
                 self._latitude = gps_latitude
-            if gps_longitude:
                 self._longitude = gps_longitude
 
     def _calculate_event_times(self):
@@ -212,7 +233,12 @@ class WurbScheduler(object):
             else:
                 self._callback_function('scheduler_rec_off')
 
-        # Start main loop.        
+        # The scheduler event times needs to be recalulated 
+        # when used over a long period.
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        tomorrow_at_noon = datetime.datetime.combine(tomorrow, datetime.time(12))
+        
+        # Start main loop. 
         while self._thread_active:
             time_now = datetime.datetime.now().time()
             #
@@ -253,8 +279,10 @@ class WurbScheduler(object):
                     #
                     rec_on_old = self._rec_on
 
-            # Recalculate event times.
-            ### TODO: At midnight...
+            # Restart the scheduler at noon to recalculate event times. 
+            if tomorrow_at_noon < datetime.datetime.now():
+                self._thread_active = False # Terminate thread.
+                self._callback_function('scheduler_restart')
                 
             # Sleep, but exit earlier if externally termined.
             for i in range(10):
@@ -262,29 +290,3 @@ class WurbScheduler(object):
                     return # Terminate thread.
                 time.sleep(1.0)
 
-    def _check_if_rec_is_on(self):
-        """ """
-        
-        pass
-    
-#         try:
-#             # Prefere GPS time.
-#             gps_time = wurb_core.WurbGpsReader().get_time_local()
-#             if gps_time:
-#                 time_now = gps_time.time()
-#             else:
-#                 time_now = datetime.datetime.now().time()
-#             # Start and stop the same day.
-#             if self._start_time < self._stop_time:
-#                 if (time_now >= self._start_time) and (time_now <= self._stop_time):
-#                     self._rec_on = True
-#                 else: 
-#                     self._rec_on = False
-#             else: # Stop the day after.
-#                 if (time_now >= self._stop_time) and (time_now <= self._start_time):
-#                     self._rec_on = False
-#                 else: 
-#                     self._rec_on = True   
-#         #
-#         except Exception as e:
-#             self._logger.error('Scheduler: Exception: ' + str(e))

@@ -1,21 +1,115 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 # Project: http://cloudedbats.org
-# Copyright (c) 2016-2017 Arnold Andreasson 
+# Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import os
-import numpy as np
-import math
+import logging
 import time
 import wave
-import scipy.signal
 import pyaudio
-import logging
 import wurb_core
+
+def default_settings():
+    """ Available settings for the this module.
+        This info is used to define default values and to 
+        generate the wurb_settings_DEFAULT.txt file."""
+    
+    description = [
+        '# Settings for the sound recorder.',
+        ]
+    default_settings = [
+        {'key': 'rec_directory_path', 'value': '/media/usb0/wurb1_rec'}, 
+        {'key': 'rec_filename_prefix', 'value': 'WURB1'},
+        {'key': 'rec_format', 'value': 'TE'}, # "TE" (Time Expansion) ot "FS" (Full Scan).        
+        {'key': 'rec_max_length_s', 'value': '20'},
+        {'key': 'rec_buffers_s', 'value': 2.0}, # Pre- and post detected sound buffer size.
+        # Hardware.
+        {'key': 'rec_sampling_freq_khz', 'value': '384'}, 
+        {'key': 'rec_microphone_type', 'value': 'STD-USB'}, # "STD-USB" or "M500".
+        {'key': 'rec_part_of_device_name', 'value': 'Pettersson'}, 
+        {'key': 'rec_device_index', 'value': 0}, # Not used if "rec_part_of_device_name" is found.
+        ]
+    developer_settings = [
+        {'key': 'rec_source_debug', 'value': 'N'}, 
+        {'key': 'rec_proc_debug', 'value': 'N'}, 
+        {'key': 'rec_target_debug', 'value': 'N'}, 
+        ]
+    #
+    return description, default_settings, developer_settings
+
+def get_device_list():
+    """ Sound source util. Check connected sound cards. """
+    py_audio = pyaudio.PyAudio()
+    device_list = []
+    device_count = py_audio.get_device_count()
+    for index in range(device_count):
+        info_dict = py_audio.get_device_info_by_index(index)
+        # Sound card for input only.
+        if info_dict['maxInputChannels'] != 0:
+            device_list.append(info_dict['name'])
+    #
+    return device_list
+
+def get_device_index(part_of_device_name):
+    """ Sound source util. Lookup for device by name. """
+    py_audio = pyaudio.PyAudio()
+    device_count = py_audio.get_device_count()
+    for index in range(device_count):
+        info_dict = py_audio.get_device_info_by_index(index)
+        if part_of_device_name in info_dict['name']:
+            return index
+    #
+    return None
+
+
+class WurbRecorder(object):
+    """ """
+    def __init__(self, callback_function=None):
+        """ """
+        self._callback_function = callback_function
+        self._logger = logging.getLogger('CloudedBatsWURB')
+        self._settings = wurb_core.WurbSettings()
+        #
+        self._sound_manager = None
+#         self._is_recording = False
+        
+    def setup_sound_manager(self):
+        """ """
+        # Sound stream parts:
+        # - Source
+        self._sound_source = None
+        if self._settings.text('rec_microphone_type') == 'M500':
+            # The Pettersson M500 microphone is developed for Windows. Special code to handle M500.
+            self._sound_source = wurb_core.SoundSourceM500(callback_function=self._callback_function)
+        else:
+            # Generic USB microphones, including Pettersson M500-384.
+            self._sound_source = wurb_core.SoundSource(callback_function=self._callback_function)
+        # - Process.
+        self._sound_process = wurb_core.SoundProcess(callback_function=self._callback_function)
+        # - Target.
+        self._sound_target = wurb_core.SoundTarget(callback_function=self._callback_function)
+        # - Manager.
+        self._sound_manager = wurb_core.SoundStreamManager(
+                                    self._sound_source, 
+                                    self._sound_process, 
+                                    self._sound_target)
+
+    def start_recording(self):
+        """ """
+        if self._sound_manager:
+            self._sound_manager.start_streaming()
+
+    def stop_recording(self, stop_immediate=False):
+        """ """
+        if self._sound_manager:
+            self._sound_manager.stop_streaming(stop_immediate)
+
 
 class SoundSource(wurb_core.SoundSourceBase):
     """ Subclass of SoundSourceBase. """
+    
     def __init__(self, callback_function=None):
         """ """
         self._callback_function = callback_function
@@ -24,6 +118,8 @@ class SoundSource(wurb_core.SoundSourceBase):
         #
         super(SoundSource, self).__init__()
         #
+        self._debug = self._settings.boolean('rec_source_debug')
+        #
         self._pyaudio = pyaudio.PyAudio()
         self._stream = None
         #
@@ -31,31 +127,31 @@ class SoundSource(wurb_core.SoundSourceBase):
         
     def read_settings(self):
         """ Called from base class. """
-        # From settings. Defaults for Pettersson M500-384.
-        self._in_sampling_rate_hz = self._settings.get_value('recorder_in_sampling_rate_hz', '384000') # in_sampling_rate_hz
-        self._in_adc_resolution_bits = self._settings.get_value('recorder_in_adc_resolution_bits', '16') # in_adc_resolution_bits
-        self._in_width = int(self._in_adc_resolution_bits / 8) 
-        self._in_channels = self._settings.get_value('recorder_in_channels', '1') # in_channels
+        if self._settings.text('rec_microphone_type') == 'M500': 
+            # For Pettersson M500. Overrides settings.
+            self._sampling_freq_hz = 500000
+        else:
+            # From settings. Defaults for Pettersson M500-384.
+            self._sampling_freq_hz = self._settings.integer('rec_sampling_freq_khz') * 1000
         # Sound card.
-        in_device_name = self._settings.get_value('recorder_part_of_device_name', 'Pettersson')
-        in_device_index = self._settings.get_value('recorder_device_index', 0) # Default=First recognized sound card.
+        in_device_name = self._settings.text('rec_part_of_device_name')
+        in_device_index = self._settings.integer('rec_device_index') # Default=0. First recognized sound card.
         if in_device_name:
-            self._in_device_index = self.get_device_index(in_device_name)
+            self._in_device_index = wurb_core.get_device_index(in_device_name)
         else:
             self._in_device_index = in_device_index
-        #
-        self._buffer_size = self._settings.get_value('recorder_in_buffer_size', 1024 * 64) # 2**16
-        self._logger.info('Recorder: Buffer size: ' + str(self._buffer_size))
+
+        self._logger.info('Recorder: Sampling frequency (hz): ' + str(self._sampling_freq_hz))
          
     def _setup_pyaudio(self):
         """ """
         # Initiate PyAudio.
         try:
             self._stream = self._pyaudio.open(
-                format = self._pyaudio.get_format_from_width(self._in_width),
-                channels = self._in_channels,
-                rate = self._in_sampling_rate_hz,
-                frames_per_buffer = self._buffer_size,
+                format = self._pyaudio.get_format_from_width(2), # 2=16 bits.
+                channels = 1, # 1=Mono.
+                rate = self._sampling_freq_hz,
+                frames_per_buffer = self._sampling_freq_hz, # Buffer 1 sec.
                 input = True,
                 output = False,
                 input_device_index = self._in_device_index,
@@ -65,7 +161,8 @@ class SoundSource(wurb_core.SoundSourceBase):
             self._stream = None
             self._logger.error('Recorder: Failed to create stream: ' + str(e))
             # Report to state machine.
-            self._callback_function('rec_source_error')
+            if self._callback_function:
+                self._callback_function('rec_source_error')
             return
 
     def source_exec(self):
@@ -74,18 +171,31 @@ class SoundSource(wurb_core.SoundSourceBase):
         if self._stream is None:
             self._setup_pyaudio()
         #
-        self._active = True
-        self._stream_active = True
-        self._stream.start_stream()
+        if self._stream: 
+            self._active = True
+            self._stream_active = True
+            self._stream_time_s = time.time()
+            self._stream.start_stream()
+        else:
+            self._logger.error('Recorder: Failed to read stream.')
+            return
+        # 
+        buffer_size = int(self._sampling_freq_hz / 2)
         
         # Main source loop.
         try:
-            data = self._stream.read(self._buffer_size) #, exception_on_overflow=False)
+            data = self._stream.read(buffer_size) #, exception_on_overflow=False)
             while self._active and data:
-    #                 raw_data  = np.fromstring(data, dtype=np.int16) # To ndarray.
-    #                 self.push_item(raw_data)
-                self.push_item((time.time(), data)) # Push time and data buffer.
-                data = self._stream.read(self._buffer_size) #, exception_on_overflow=False)
+                # Add time and check for time drift.
+                self._stream_time_s += 0.5 # One buffer is 0.5 sec.
+                if (self._stream_time_s > (time.time() + 10)) or \
+                   (self._stream_time_s < (time.time() - 10)):
+                    self._stream_time_s = time.time()
+                    self._logger.warning('Recorder: Rec. time adjusted.')
+                # Push time and data buffer.
+                self.push_item((self._stream_time_s, data)) 
+                #
+                data = self._stream.read(buffer_size) #, exception_on_overflow=False)
         except Exception as e:
             self._logger.error('Recorder: Failed to read stream: ' + str(e))
 
@@ -100,48 +210,12 @@ class SoundSource(wurb_core.SoundSourceBase):
             except: 
                 self._logger.error('Recorder: Pyaudio stream stop/close failed.')
             self._stream = None
-#         #
-#         if self._pyaudio is not None:
-#             try: self._pyaudio.terminate()
-#             except: 
-#                 self._logger.error('Recorder: Pyaudio terminate failed.')
-#             self._pyaudio = None
 
-    # Sound source utils.   
-    def get_device_list(self):
-        """ """
-        py_audio = pyaudio.PyAudio()
-        device_list = []
-        device_count = py_audio.get_device_count()
-        for index in range(device_count):
-            info_dict = py_audio.get_device_info_by_index(index)
-            # Sound card for input only.
-            if info_dict['maxInputChannels'] != 0:
-                device_list.append(info_dict['name'])
-        #
-        return device_list
-
-    def get_device_index(self, part_of_device_name):
-        """ """
-        py_audio = pyaudio.PyAudio()
-        device_count = py_audio.get_device_count()
-        for index in range(device_count):
-            info_dict = py_audio.get_device_info_by_index(index)
-            if part_of_device_name in info_dict['name']:
-                return index
-        #
-        return None
-    
 class SoundSourceM500(SoundSource):
     """ Subclass of SoundSource for the Pettersson M500 microphone. """
     def __init__(self, callback_function=None):
         """ """
         super(SoundSourceM500, self).__init__(callback_function)
-        #
-        self._in_sampling_rate_hz = self._settings.get_value('recorder_in_sampling_rate_hz', '500000') # in_sampling_rate_hz
-        self._in_adc_resolution_bits = self._settings.get_value('recorder_in_adc_resolution_bits', '16') # in_adc_resolution_bits
-        self._in_width = int(self._in_adc_resolution_bits / 8) 
-        self._in_channels = self._settings.get_value('recorder_in_channels', '1') # in_channels
         #
         self._m500batmic = None
         
@@ -155,19 +229,33 @@ class SoundSourceM500(SoundSource):
             #
             self._stream_active = True
             #
+            self._stream_time_s = time.time()
             self._m500batmic.start_stream()
             self._m500batmic.led_on()            
 
         except Exception as e:
             self._logger.error('Recorder: Failed to create stream: ' + str(e))
             # Report to state machine.
-            self._callback_function('rec_source_error')
+            if self._callback_function:
+                self._callback_function('rec_source_error')
             return
         # Main source loop.
-        data = self._m500batmic.read_stream().tostring()
-        while self._active and data:
-            self.push_item((time.time(), data)) # Push time and data buffer.
+        data_array = self._m500batmic.read_stream()
+        while self._active and (len(data_array) > 0):
+            # Push 0.5 sec each time. M500 can't deliver that size directly.
+            if len(data_array) >= 500000:
+                # Add time and check for time drift.
+                self._stream_time_s += 0.5 # One buffer is 0.5 sec.
+                if (self._stream_time_s > (time.time() + 10)) or \
+                   (self._stream_time_s < (time.time() - 10)):
+                    self._stream_time_s = time.time()
+                    self._logger.warning('Recorder: Rec. time adjusted.')
+                # Push time and data buffer.
+                self.push_item((self._stream_time_s, data_array[0:500000])) 
+                data_array = data_array[500000:]
+            #
             data = self._m500batmic.read_stream().tostring()
+            data_array.extend(data)
         #
         self._logger.debug('Source M500: Source terminated.')
         self.push_item(None)
@@ -185,123 +273,79 @@ class SoundProcess(wurb_core.SoundProcessBase):
         #
         super(SoundProcess, self).__init__()
         #
-        self._work_buffer = np.array([], dtype=np.int16) # Create empty ndarray.
-#         self._work_buffer = []
-        #
-#         self._threshold_db = -60.0
-#         self._threshold = math.pow(10.0, self._threshold_db/20.0)
-        self._threshold_db = -32.0
-        self._threshold_db = -30.0
-#         self._threshold_db = -80.0
-        self._threshold = math.pow(10.0, self._threshold_db/10.0)
-#         test_db = 20*math.log10(0.01)
-#         self._logger.debug('DEBUG: ' + str(test_db))
-        self._logger.debug('Threshold db: ' + str(self._threshold_db) + ' magnitude: ' + str(self._threshold))
-        #
-#         self._peak_freq_file = open('peak_file.txt', 'w')
-#         peak_header = ['time', 'frequency', 'amplitude']
-#         self._peak_freq_file.write('\t'.join(peak_header) + '\n')
+        self._debug = self._settings.boolean('rec_proc_debug')
+        self._rec_buffers_s = self._settings.float('rec_buffers_s')
 
     def process_exec(self):
         """ Called from base class. """
         self._active = True
+        # Get sound detector based on user settings.
+        sound_detector = None
+        try:
+            sound_detector = wurb_core.SoundDetector().get_detector()
+        except Exception as e:
+            sound_detector = None
+            self._logger.error('Recorder: SoundDetector exception: ', str(e))
+
+        sound_detected = False
         #
-        self._counter_ms = 0
+        buffer_size = int(self._rec_buffers_s * 2.0) # Buffers are of 0.5 sec length.
         #
-        self._frame_size = 2048
-        self._jump_size = 384 # Jump 1 ms.
-        #
-#         self._window = np.hanning(self._frame_size)
-        self._window = np.blackman(self._frame_size)
-        #
-        self._freq_bins_hz = np.fft.rfftfreq(self._frame_size, d=1/384000)
-        self._empty_frame = np.zeros(self._jump_size)
-        #
-#         self._silent_counter_max = 250
-        self._silent_counter_max = 1000 # Unit ms.
-        self._silent_counter = self._silent_counter_max
-        self._pre_silent_items = []
-        #
-        test_count = 0
-        
         silent_buffer = []
         silent_counter = 9999 # Don't send before sound detected.
         
-        while self._active:
-            time_and_data = self.pull_item()
-
-            if time_and_data is None:
-                self._logger.debug('Process terminated.')
-                self._active = False
-                # Terminated by previous step.
-                self.push_item(None)
-                #
-#                 self._peak_freq_file.close()
-                #
-            else:
-#                 self.process_buffer(raw_data)
-                sound_detected = self._sound_analysis(time_and_data)
-                if sound_detected:
-                    if len(silent_buffer) > 0:
-                        for silent_time_and_data in silent_buffer:
-                            self.push_item(silent_time_and_data)
-                        #
-                        silent_buffer = []
-                    #    
-                    self.push_item(time_and_data)
-                    silent_counter = 0
+        try:
+            while self._active:
+                time_and_data = self.pull_item()
+    
+                if time_and_data is None:
+                    self._logger.debug('Rec-process terminated.')
+                    self._active = False
+                    # Terminated by previous step.
+                    self.push_item(None)
                 else:
-                    if silent_counter < 25: # >4 sec.
+    #                 self.process_buffer(raw_data)
+                    try:
+                        sound_detected = sound_detector.check_for_sound(time_and_data)
+                    except Exception as e:
+                        sound_detected = True
+                    #
+                    if sound_detected:
+                        
+                        if self._debug:
+                            print('DEBUG: Sound detected.')
+                        
+                        # Send pre buffer if this is the first one.
+                        if len(silent_buffer) > 0:
+                            for silent_time_and_data in silent_buffer:
+                                self.push_item(silent_time_and_data)
+                            #
+                            silent_buffer = []
+                        # Send buffer.    
                         self.push_item(time_and_data)
-                        silent_counter += 1
-                    elif silent_counter < 60: # 10 sec.
-                        silent_buffer.append(time_and_data)
-                        silent_counter += 1
+                        silent_counter = 0
                     else:
-                        self.push_item(False)
-                        silent_buffer.append(time_and_data)
-                        while len(silent_buffer) > 25: # >4 sec.
-                            silent_buffer.pop(0)
+                        
+                        if self._debug:
+                            print('DEBUG: Sound not detected. Counter: ', silent_counter)
+                        
+                        if silent_counter < buffer_size: # Unit 0.5 sec.
+                            # Send after sound detected.
+                            self.push_item(time_and_data)
+                            silent_counter += 1
+                        elif silent_counter < (buffer_size * 2): # Unit 0.5 sec.
+                            # Accept longer silent part between pulses.
+                            silent_buffer.append(time_and_data)
+                            silent_counter += 1
+                        else:
+                            # Silent, but store in pre buffer.
+                            self.push_item(False)
+                            silent_buffer.append(time_and_data)
+                            while len(silent_buffer) > buffer_size: # Unit 0.5sec.
+                                silent_buffer.pop(0)
+        except Exception as e:
+            self._logger.error('Recorder: Sound process_exec exception: ', str(e))
                     
-    def _sound_analysis(self, time_and_data):
-        """ """
-        rec_time, raw_data = time_and_data
-        # TODO: Move this:
-        self_window_size = 2048
-        self._jump_size = 2048
-        self_blackmanharris_window = scipy.signal.blackmanharris(self_window_size)        
-        # Max db value in window. dbFS = db full scale. Half spectrum used.
-        self_blackmanharris_dbfs_max = np.sum(self_blackmanharris_window) / 2 
-        self_freq_bins_hz = np.arange((self_window_size / 2) + 1) / (self_window_size / 384000) # self_sampling_frequency)
-        #
-        data_int16 = np.fromstring(raw_data, dtype=np.int16) # To ndarray.
-#         self._work_buffer = np.concatenate([self._work_buffer, data_int16])
-        self._work_buffer = data_int16
-        #
-        while len(self._work_buffer) >= self._frame_size:
-            # Get frame of window size.
-            data_frame = self._work_buffer[:self._frame_size] # Copy frame.
-            self._work_buffer = self._work_buffer[self._jump_size:] # Cut the first jumped size.            
-            # Transform to intervall -1 to 1 and apply window function.
-            signal = data_frame / 32768.0 * self_blackmanharris_window
-            # From time domain to frequeny domain.
-            spectrum = np.fft.rfft(signal)
-            # High pass filter. Unit Hz. Cut below 15 kHz.
-            spectrum[ self_freq_bins_hz < 15000.0 ] = 0.000000001 # log10 does not like zero.
-            # Convert spectrum to dBFS (bin values related to maximal possible value).
-            dbfs_spectrum = 20 * np.log10(np.abs(spectrum) / self_blackmanharris_dbfs_max)
-            # Find peak and dBFS value for the peak.
-            bin_peak_index = dbfs_spectrum.argmax()
-            peak_db = dbfs_spectrum[bin_peak_index]
-            # Treshold.
-            if peak_db > -50:
-                peak_frequency_hz = bin_peak_index * 384000 / self_window_size
-                self._logger.debug('Peak freq hz: '+ str(peak_frequency_hz) + '   dBFS: ' + str(peak_db))
-                print('Peak freq hz: '+ str(peak_frequency_hz) + '   dBFS: ' + str(peak_db))
-                return True
-        #
-        print('DEBUG: Silent.')
-        return False
 
 
 class SoundTarget(wurb_core.SoundTargetBase):
@@ -313,91 +357,106 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._settings = wurb_core.WurbSettings()
         #
         super(SoundTarget, self).__init__()
-        #
         # From settings. 
-        self._dir_path = self._settings.get_value('recorder_dir_path', '/media/usb0/wurb1_rec')
-        self._filename_lat_long = self._settings.get_value('recorder_filename_lat_long', 'N00.00E00.00')
-        self._filename_prefix = self._settings.get_value('recorder_filename_prefix', 'WURB1')
-        if not self._settings.get_value('recorder_pettersson_m500', 'False'):
-            self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE384')
-            self._out_sampling_rate_hz = self._settings.get_value('recorder_out_sampling_rate_hz', '38400')
+        self._dir_path = self._settings.text('rec_directory_path')
+        self._filename_prefix = self._settings.text('rec_filename_prefix')
+        rec_max_length_s = self._settings.integer('rec_max_length_s')
+        self._rec_max_length = rec_max_length_s * 2
+        # Different microphone types.
+        if self._settings.text('rec_microphone_type') == 'M500':
+            # For M500 only.
+            if self._settings.text('rec_format') == 'TE':
+                self._filename_rec_type = 'TE500'
+                self._out_sampling_rate_hz = 50000
+            else:
+                self._filename_rec_type = 'FS500'
+                self._out_sampling_rate_hz = 500000
         else:
-            self._filename_rec_type = self._settings.get_value('recorder_filename_rec_type', 'TE500')
-            self._out_sampling_rate_hz = self._settings.get_value('recorder_out_sampling_rate_hz', '50000')
-        self._adc_resolution = self._settings.get_value('recorder_adc_resolution', '16')
-        self._width = int(self._adc_resolution / 8) 
-        self._channels = self._settings.get_value('recorder_out_channels', '1') # 1 = mono, 2 = stereo.
-        self._max_record_length_s = self._settings.get_value('recorder_max_record_length_s', '60')
+            # For standard USB, inclusive M500-384.
+            if self._settings.text('rec_format') == 'TE':
+                self._filename_rec_type = 'TE' + self._settings.text('rec_sampling_freq_khz')
+                self._out_sampling_rate_hz = self._settings.integer('rec_sampling_freq_khz') * 100
+            else:
+                self._filename_rec_type = 'FS' + self._settings.text('rec_sampling_freq_khz')
+                self._out_sampling_rate_hz = self._settings.integer('rec_sampling_freq_khz') * 1000
         #
-#         self._wave_file = None
-#         self._file_open = False
         self._total_start_time = None
         self._internal_buffer_list = []
-        #
         self._write_thread_active = False
         self._active = False
     
     def target_exec(self):
         """ Called from base class. """
         self._active = True
-        rec_start_time = None
+        wave_file_writer = None
         # Use buffer to increase write speed.
         item_list = []
-        item_list_max = 10
-        #
-        wave_file_writer = None
+        item_list_max = 5 # Unit 0.5 sec. Before flush to file.
+        item_counter = 0
         #
         try:
             while self._active:
                 item = self.pull_item()
-                # None indicates terminate by previous part in chain.
+                
+                # "None" indicates terminate by previous part in chain.
                 if item is None:
-                    self._active = False # Terminated by previous step.                 
-                # False indicates silent part. Close file until not silent. 
+                    self._active = False # Terminated by previous step.
+                    continue              
+
+                # "False" indicates silent part. Close file until not silent. 
                 elif item is False:
                     if wave_file_writer:
                         # Flush buffer.
                         joined_items = b''.join(item_list)
-                        wave_file_writer.write(joined_items)
                         item_list = []
+                        wave_file_writer.write(joined_items)
                         # Close.
                         wave_file_writer.close()
                         wave_file_writer = None
+                        item_counter = 0
+                    #
+                    continue
+                
                 # Normal case, write frames.
                 else:
-                    rec_time, data = item
-                    
-                    item_list.append(data)
+                    _rec_time, data = item # "rec_time" not used.
+
                     # Open file if first after silent part.
                     if not wave_file_writer:
                         wave_file_writer = WaveFileWriter(self)
-                        rec_start_time = rec_time
-                    #
+                        
+                    # Check if max rec length was reached.
+                    if item_counter >= self._rec_max_length: 
+                        if wave_file_writer:
+                            # Flush buffer.
+                            joined_items = b''.join(item_list)
+                            item_list = []
+                            wave_file_writer.write(joined_items)
+                            # Close the old one.
+                            wave_file_writer.close()
+                            wave_file_writer = None
+                            item_counter = 0
+                            # Open a new file.
+                            wave_file_writer = WaveFileWriter(self)
+                                
+                    # Append data to buffer
+                    item_list.append(data)
+                    item_counter += 1
+                    
+                    # Flush buffer when needed.
                     if len(item_list) >= item_list_max:
-                        # Flush buffer.
                         if wave_file_writer:
                             joined_items = b''.join(item_list)
-                            wave_file_writer.write(joined_items)
                             item_list = []
-                    # Check if max rec length was reached.
-                    if rec_start_time:
-                        if (rec_start_time + self._max_record_length_s) < rec_time:
-                            if wave_file_writer:
-                                # Flush buffer.
-                                joined_items = b''.join(item_list)
-                                wave_file_writer.write(joined_items)
-                                item_list = []
-                                # Close.
-                                wave_file_writer.close()
-                                wave_file_writer = None
+                            wave_file_writer.write(joined_items)
             
             # Thread terminated.
             if wave_file_writer:
                 if len(item_list) > 0:
                     # Flush buffer.
                     joined_items = b''.join(item_list)
-                    wave_file_writer.write(joined_items)
                     item_list = []
+                    wave_file_writer.write(joined_items)
                 #
                 wave_file_writer.close()
                 wave_file_writer = None
@@ -405,82 +464,92 @@ class SoundTarget(wurb_core.SoundTargetBase):
         except Exception as e:
             self._logger.error('Recorder: Sound target exception: ' + str(e))
             self._active = False # Terminate
-            self._callback_function('rec_target_error')
+            if self._callback_function:
+                self._callback_function('rec_target_error')
 
 
 class WaveFileWriter():
-    """ """
-    def __init__(self, target_object):
+    """ Each file is connected to a separate object to avoid concurrency problems. """
+    def __init__(self, sound_target_obj):
         """ """
         self._wave_file = None
-        self._target_object = target_object
+        self._sound_target_obj = sound_target_obj
+        self._size_counter = 0 
         
         # Create file name.
         # Default time and position.
         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
-        latlongstring = target_object._filename_lat_long
+        latlongstring = 'N00.00E00.00' # Default.
         # Use GPS time if available.
         datetime_local_gps = wurb_core.WurbGpsReader().get_time_local_string()
         if datetime_local_gps:
             datetimestring = datetime_local_gps
-        # Use GPS time if available.
+        # Use GPS position if available.
         latlong = wurb_core.WurbGpsReader().get_latlong_string()
         if latlong:
             latlongstring = latlong
-        #
-        filename =  target_object._filename_prefix + \
+            
+        # Filename example: "WURB1_20180420T205942+0200_N00.00E00.00_TE384.wav"
+        filename =  sound_target_obj._filename_prefix + \
                     '_' + \
                     datetimestring + \
                     '_' + \
                     latlongstring + \
                     '_' + \
-                    target_object._filename_rec_type + \
+                    sound_target_obj._filename_rec_type + \
                     '.wav'
-        filenamepath = os.path.join(target_object._dir_path, filename)
+        filenamepath = os.path.join(sound_target_obj._dir_path, filename)
         #
-        if not os.path.exists(target_object._dir_path):
-            os.makedirs(target_object._dir_path) # For data, full access.
+        if not os.path.exists(sound_target_obj._dir_path):
+            os.makedirs(sound_target_obj._dir_path) # For data, full access.
         # Open wave file for writing.
         self._wave_file = wave.open(filenamepath, 'wb')
-        self._wave_file.setnchannels(target_object._channels)
-        self._wave_file.setsampwidth(target_object._width)
-        self._wave_file.setframerate(target_object._out_sampling_rate_hz)
+        self._wave_file.setnchannels(1) # 1=Mono.
+        self._wave_file.setsampwidth(2) # 2=16 bits.
+        self._wave_file.setframerate(sound_target_obj._out_sampling_rate_hz)
         #
-        target_object._logger.info('Recorder: New wave file: ' + filename)
+        sound_target_obj._logger.info('Recorder: New sound file: ' + filename)
         
     def write(self, buffer):
         """ """
         self._wave_file.writeframes(buffer)
+        self._size_counter += len(buffer) / 2 # Count frames.
 
     def close(self):
         """ """
-        self._target_object._logger.info('Recorder: Audio target wave file closed.')
         if self._wave_file is not None:
             self._wave_file.close()
             self._wave_file = None 
 
+            length_in_sec = self._size_counter / self._sound_target_obj._out_sampling_rate_hz
+            self._sound_target_obj._logger.info('Recorder: Sound file closed. Length:' + str(length_in_sec) + ' sec.')
 
-
+    
 
 # === TEST ===    
 if __name__ == "__main__":
     """ """
-    # Default configured for Pettersson M500-384.
-    # Command to test M500-384: PYTHONPATH="." python3 wurb_core/wurb_recorder.py
-    source = SoundSource() 
+    import sys
+    import pathlib
+    path = ".."
+    sys.path.append(path)
     #
-    # M500 as source. Must have sudo privileges for direct USB access.
-    # Command to test M500: sudo PYTHONPATH="." python3 wurb_core/wurb_recorder.py
-    # source = SoundSourceM500() 
+    settings = wurb_core.WurbSettings()
+    (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
+    settings.set_default_values(desc, default, dev)
+    (desc, default, dev) = wurb_core.wurb_gps_reader.default_settings()
+    settings.set_default_values(desc, default, dev)
     #
-    process = SoundProcess()
+    internal_setting_path = pathlib.Path('../wurb_settings/user_settings.txt')
+    settings.load_settings(internal_setting_path)
     #
-    target = SoundTarget()
+    recorder = wurb_core.WurbRecorder()
+    recorder.setup_sound_manager()
     #
-    manager = wurb_core.WurbSoundStreamManager(source, process, target,
-                                               source_queue_max=100)
-    #
-    manager.start_streaming()
-    time.sleep(30)
-    manager.stop_streaming()
+    print('TEST - started.')
+    recorder.start_recording()
+    time.sleep(5.5)
+    recorder.stop_recording()
+    print('TEST - ended.')
+
 

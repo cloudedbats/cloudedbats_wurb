@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 # Project: http://cloudedbats.org
-# Copyright (c) 2016-2017 Arnold Andreasson 
+# Copyright (c) 2016-2018 Arnold Andreasson 
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import sys
@@ -31,11 +31,11 @@ class WurbLogging(object):
         """ """
 
     def setup(self,
-              usb_required=True,  
+              usb_memory_used=True,  
               internal_path = 'wurb_log_files',
               external_path = '/media/usb0/cloudedbats_wurb/log_files'):
         """ """
-        self._usb_required = usb_required
+        self._usb_memory_used = usb_memory_used
         log = logging.getLogger('CloudedBatsWURB')
 #        log.setLevel(logging.INFO)
         log.setLevel(logging.DEBUG)
@@ -51,7 +51,7 @@ class WurbLogging(object):
         # Log directories.
         if not self._internal_dir_path.exists():
             self._internal_dir_path.mkdir(parents=True)
-        if self._usb_required:
+        if self._usb_memory_used:
             if pathlib.Path('/media/usb0').exists():
                 if not self._external_dir_path.exists():
                     self._external_dir_path.mkdir(parents=True)
@@ -69,7 +69,7 @@ class WurbLogging(object):
         
         # Define rotation log files for external log files.
         try:
-            if self._usb_required:
+            if self._usb_memory_used:
                 if pathlib.Path('/media/usb0').exists():
                     log_handler_ext = handlers.RotatingFileHandler(str(self._external_log_path),
                                                                    maxBytes = 128*1024,
