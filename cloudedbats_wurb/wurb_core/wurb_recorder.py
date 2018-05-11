@@ -35,6 +35,7 @@ def default_settings():
         {'key': 'rec_source_debug', 'value': 'N'}, 
         {'key': 'rec_proc_debug', 'value': 'N'}, 
         {'key': 'rec_target_debug', 'value': 'N'}, 
+        {'key': 'rec_source_adj_time_on_drift', 'value': 'N'}, 
         ]
     #
     return description, default_settings, developer_settings
@@ -119,6 +120,7 @@ class SoundSource(wurb_core.SoundSourceBase):
         super(SoundSource, self).__init__()
         #
         self._debug = self._settings.boolean('rec_source_debug')
+        self._rec_source_adj_time_on_drift = self._settings.boolean('rec_source_adj_time_on_drift')
         #
         self._pyaudio = pyaudio.PyAudio()
         self._stream = None
@@ -190,8 +192,13 @@ class SoundSource(wurb_core.SoundSourceBase):
                 self._stream_time_s += 0.5 # One buffer is 0.5 sec.
                 if (self._stream_time_s > (time.time() + 10)) or \
                    (self._stream_time_s < (time.time() - 10)):
-                    self._stream_time_s = time.time()
-                    self._logger.warning('Recorder: Rec. time adjusted.')
+                    #
+                    time_diff_s = int(time.time() - self._stream_time_s)
+                    if self._rec_source_adj_time_on_drift:
+                        self._logger.warning('Recorder: Rec. time adjusted. Diff: ' + str(time_diff_s) + ' sec.')
+                        self._stream_time_s = time.time()
+                    else:
+                        self._logger.debug('Recorder: Rec. time drift. Diff: ' + str(time_diff_s) + ' sec.')                    
                 # Push time and data buffer.
                 self.push_item((self._stream_time_s, data)) 
                 #
@@ -217,6 +224,9 @@ class SoundSourceM500(SoundSource):
         """ """
         super(SoundSourceM500, self).__init__(callback_function)
         #
+        self._debug = self._settings.boolean('rec_source_debug')
+        self._rec_source_adj_time_on_drift = self._settings.boolean('rec_source_adj_time_on_drift')
+        #
         self._m500batmic = None
         
     def source_exec(self):
@@ -231,7 +241,7 @@ class SoundSourceM500(SoundSource):
             #
             self._stream_time_s = time.time()
             self._m500batmic.start_stream()
-            self._m500batmic.led_on()            
+            self._m500batmic.led_on()
 
         except Exception as e:
             self._logger.error('Recorder: Failed to create stream: ' + str(e))
@@ -248,8 +258,13 @@ class SoundSourceM500(SoundSource):
                 self._stream_time_s += 0.5 # One buffer is 0.5 sec.
                 if (self._stream_time_s > (time.time() + 10)) or \
                    (self._stream_time_s < (time.time() - 10)):
-                    self._stream_time_s = time.time()
-                    self._logger.warning('Recorder: Rec. time adjusted.')
+                    #
+                    time_diff_s = int(time.time() - self._stream_time_s)
+                    if self._rec_source_adj_time_on_drift:
+                        self._logger.warning('Recorder: Rec. time adjusted. Diff: ' + str(time_diff_s) + ' sec.')                    
+                        self._stream_time_s = time.time()
+                    else:
+                        self._logger.debug('Recorder: Rec. time drift. Diff: ' + str(time_diff_s) + ' sec.')                    
                 # Push time and data buffer.
                 self.push_item((self._stream_time_s, data_array[0:500000])) 
                 data_array = data_array[500000:]
@@ -533,6 +548,10 @@ if __name__ == "__main__":
     import pathlib
     path = ".."
     sys.path.append(path)
+    
+    # Logging to standard output.
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    
     #
     settings = wurb_core.WurbSettings()
     (desc, default, dev) = wurb_core.wurb_recorder.default_settings()
