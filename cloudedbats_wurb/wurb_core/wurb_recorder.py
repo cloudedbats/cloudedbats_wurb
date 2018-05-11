@@ -35,7 +35,7 @@ def default_settings():
         {'key': 'rec_source_debug', 'value': 'N'}, 
         {'key': 'rec_proc_debug', 'value': 'N'}, 
         {'key': 'rec_target_debug', 'value': 'N'}, 
-        {'key': 'rec_source_adj_time_on_drift', 'value': 'N'}, 
+        {'key': 'rec_source_adj_time_on_drift', 'value': 'Y'}, 
         ]
     #
     return description, default_settings, developer_settings
@@ -249,11 +249,16 @@ class SoundSourceM500(SoundSource):
             if self._callback_function:
                 self._callback_function('rec_source_error')
             return
+        # 
+        # buffer_size = int(self._sampling_freq_hz / 2)
+        buffer_size = int(self._sampling_freq_hz)
+        
         # Main source loop.
-        data_array = self._m500batmic.read_stream()
-        while self._active and (len(data_array) > 0):
+        data = self._m500batmic.read_stream().tostring()
+        data_array = data
+        while self._active and (len(data) > 0):
             # Push 0.5 sec each time. M500 can't deliver that size directly.
-            if len(data_array) >= 500000:
+            if len(data_array) >= buffer_size:
                 # Add time and check for time drift.
                 self._stream_time_s += 0.5 # One buffer is 0.5 sec.
                 if (self._stream_time_s > (time.time() + 10)) or \
@@ -266,11 +271,11 @@ class SoundSourceM500(SoundSource):
                     else:
                         self._logger.debug('Recorder: Rec. time drift. Diff: ' + str(time_diff_s) + ' sec.')                    
                 # Push time and data buffer.
-                self.push_item((self._stream_time_s, data_array[0:500000])) 
-                data_array = data_array[500000:]
+                self.push_item((self._stream_time_s, data_array[0:buffer_size])) 
+                data_array = data_array[buffer_size:]
             #
             data = self._m500batmic.read_stream().tostring()
-            data_array.extend(data)
+            data_array += data
         #
         self._logger.debug('Source M500: Source terminated.')
         self.push_item(None)
