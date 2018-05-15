@@ -135,7 +135,7 @@ class WurbApplication():
         # Initiate sound recorder.
         self._logger.info('')
         self._logger.info('=== Sound recorder startup. ===')
-        self._recorder = wurb_core.WurbRecorder()
+        self._recorder = wurb_core.WurbRecorder(callback_function=self.perform_event)
         self._recorder.setup_sound_manager()
         
         # Control-GPIO. Connected by callback.
