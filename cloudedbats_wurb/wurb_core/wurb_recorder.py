@@ -27,7 +27,7 @@ def default_settings():
         {'key': 'rec_buffers_s', 'value': 2.0}, # Pre- and post detected sound buffer size.
         # Hardware.
         {'key': 'rec_sampling_freq_khz', 'value': '384'}, 
-        {'key': 'rec_microphone_type', 'value': 'STD-USB'}, # "STD-USB" or "M500".
+        {'key': 'rec_microphone_type', 'value': 'USB'}, # "USB" or "M500".
         {'key': 'rec_part_of_device_name', 'value': 'Pettersson'}, 
         {'key': 'rec_device_index', 'value': 0}, # Not used if "rec_part_of_device_name" is found.
         ]
