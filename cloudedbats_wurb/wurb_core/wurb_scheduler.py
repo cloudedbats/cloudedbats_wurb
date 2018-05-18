@@ -19,13 +19,14 @@ def default_settings():
         '# Settings for the scheduler.',
         ]
     default_settings = [
-        {'key': 'scheduler_use_gps', 'value': 'N'},
-        {'key': 'scheduler_wait_for_gps', 'value': 'N'},  
+        {'key': 'scheduler_use_gps', 'value': 'Y'},
+        {'key': 'scheduler_wait_for_gps', 'value': 'Y'},  
         {'key': 'default_latitude', 'value': '0.0'}, 
         {'key': 'default_longitude', 'value': '0.0'},
         #
         {'key': 'scheduler_event', 'value': 'scheduler_rec_on/sunset/-10'},
         {'key': 'scheduler_event', 'value': 'scheduler_rec_off/sunrise/+10'},
+        {'key': 'scheduler_event', 'value': 'scheduler_rpi_shutdown/sunrise/+15'},
         ]
     developer_settings = [
         ]

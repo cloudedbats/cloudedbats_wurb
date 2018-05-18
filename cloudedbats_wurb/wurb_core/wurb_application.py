@@ -252,7 +252,7 @@ class WurbApplication():
              'actions': ['rec_stop', 'rpi_shutdown'] },  #['rec_stop', 'sleep_10s', 'rpi_reboot'] }, 
             # 
             {'states': ['*'], 
-             'events': ['mouse_rpi_shutdown'], # ['mouse_rpi_shutdown', 'no_usb_detected_error'], 
+             'events': ['scheduler_rpi_shutdown', 'mouse_rpi_shutdown'], 
              'new_state': 'rpi_off', 
              'actions': ['rec_stop', 'rpi_shutdown'] }, 
             ]

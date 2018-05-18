@@ -171,7 +171,7 @@ class WurbSettings(object):
         used_settings.append(' ')
         #
         for row in self._wurb_scheduler_events:
-            used_settings.append(row)
+            used_settings.append('scheduler_event: ' + row)
         #
         used_settings.append(' ')
         used_settings.append('# Development settings:')
