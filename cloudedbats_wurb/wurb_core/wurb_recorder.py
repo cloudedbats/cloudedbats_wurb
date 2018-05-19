@@ -22,7 +22,7 @@ def default_settings():
     default_settings = [
         {'key': 'rec_directory_path', 'value': '/media/usb0/wurb1_rec'}, 
         {'key': 'rec_filename_prefix', 'value': 'WURB1'},
-        {'key': 'rec_format', 'value': 'TE'}, # "TE" (Time Expansion) ot "FS" (Full Scan).        
+        {'key': 'rec_format', 'value': 'FS'}, # "TE" (Time Expansion) ot "FS" (Full Scan).        
         {'key': 'rec_max_length_s', 'value': '20'},
         {'key': 'rec_buffers_s', 'value': 2.0}, # Pre- and post detected sound buffer size.
         # Hardware.
@@ -382,6 +382,9 @@ class SoundTarget(wurb_core.SoundTargetBase):
         self._filename_prefix = self._settings.text('rec_filename_prefix')
         rec_max_length_s = self._settings.integer('rec_max_length_s')
         self._rec_max_length = rec_max_length_s * 2
+        # Default for latitude/longitude in the decimal degree format.
+        self._latitude = float(self._settings.float('default_latitude'))
+        self._longitude = float(self._settings.float('default_longitude'))
         # Different microphone types.
         if self._settings.text('rec_microphone_type') == 'M500':
             # For M500 only.
@@ -499,7 +502,22 @@ class WaveFileWriter():
         # Create file name.
         # Default time and position.
         datetimestring = time.strftime("%Y%m%dT%H%M%S%z")
-        latlongstring = 'N00.00E00.00' # Default.
+        latlongstring = '' # Format: 'N56.78E12.34'
+        try:
+            if sound_target_obj._latitude >= 0: 
+                latlongstring += 'N' 
+            else: 
+                latlongstring += 'S'
+            latlongstring += str(abs(sound_target_obj._latitude))
+            #
+            if sound_target_obj._longitude >= 0: 
+                latlongstring += 'E' 
+            else: 
+                latlongstring += 'W'
+            latlongstring += str(abs(sound_target_obj._longitude))
+        except:
+            latlongstring = 'N00.00E00.00'
+        
         # Use GPS time if available.
         datetime_local_gps = wurb_core.WurbGpsReader().get_time_local_string()
         if datetime_local_gps:
