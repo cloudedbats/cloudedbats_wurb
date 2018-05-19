@@ -41,7 +41,7 @@ automatically generated at each startup.
 Default settings are overridden by creating a file named "user_settings.txt" in 
 the same directory containing the rows that should be modified. 
 The new settings file will be stored in the WURB and used at next startup, even 
-if the user are using another USB memory without the "user_settings.txt" file.
+if the user is using another USB memory without the "user_settings.txt" file.
 Some usage example can be found in the user manual (see the project page). 
 
 
@@ -56,30 +56,30 @@ Settings for the sound recorder
   
 - "rec_filename_prefix" (default: "WURB1")
   
-  The first part of each filename. Change tis to make it easier to sort files.
+  The first part of each filename. Change this to make it easier to sort files.
 
-- "rec_format" (default: "TE")
+- "rec_format" (default: "FS")
   
   Use "TE" for Time Expansion or "FS" for Full Scan. The same amount of data
-  is stored when using FS, but the time scale will be increased by 10 and the 
+  is stored when using TE, but the time scale will be increased by 10 and the 
   frequency decreased by 10.
 
 - "rec_max_length_s" (default: "20")
   
   The length of a recording depends on when sound is detected. This parameter
   defines when a new file should be created. No sound frames are lost when 
-  switching to a new file.
+  switching to a new file. Unit: seconds.
 
 - "rec_buffers_s" (default: "2.0")
   
   Defines the buffer size to be used before and after a detected sound. 
   The recording will continue if sound is detected again within this 
-  buffer size multiplied by two.
+  buffer size multiplied by two. Unit: seconds.
   
 - "rec_sampling_freq_khz" (default: "384")
   
   Set the sampling frequency for the microphone. For example 192, 256, 
-  384 or 500, but it depends on the used microphone.
+  384 or 500, but it depends on the used microphone. Unit: kHz.
 
 - "rec_microphone_type" (default: "USB")
   
@@ -125,11 +125,11 @@ Settings for the scheduler
     Default-3: "scheduler_rpi_shutdown/sunrise/+15"
   
   Scheduler events consists of three parts:
-    1. "command to be executed". Should be defined as a valid event in the stat 
-       machine in the python module "wurb_applicatio.py".
-    2. "time event". "sunset", "sunrise", "dusk" and "dawn" are valid, as well as 
+    1. "command to be executed": Should be set as a valid state transition in the 
+       "state machine" defined in the python module "wurb_application.py".
+    2. "time event": "sunset", "sunrise", "dusk" and "dawn" are valid, as well as 
        timestamps on the format "hh:mm", for example "02:30".
-    3. "adjustment in minutes". 
+    3. "adjustment in minutes": For example "+180" for three hours after something.  
     Add as many scheduler events as you want.
 
 
@@ -138,14 +138,14 @@ Settings for the GPS reader
 
 - "timezone" (default: "UTC")
 
-  Time zones should be declared by using the "tx database" format, for example 
+  Time zones should be declared by using the "tz database" format, for example 
   "Europe/Stockholm". More information here:
   https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 - "set_time_from_gps" (default: "Y")
 
   Use the GPS time to set the Raspberry Pi time. This is not needed if the 
-  Raspberry Pi always is connected to the internet.
+  Raspberry Pi always is connected to the Internet.
 
 
 Settings for sound detection algorithms

@@ -80,9 +80,6 @@ class WurbScheduler(object):
         try:
             self._thread_active = True
             #
-            self._read_gps_time_and_pos()
-            self._calculate_event_times()
-            #
             self._scheduler_thread = threading.Thread(target = self._scheduler_exec, args = [])
             self._scheduler_thread.start()
         except Exception as e:
@@ -196,6 +193,17 @@ class WurbScheduler(object):
     
     def _scheduler_exec(self):
         """ """
+        #
+        self._read_gps_time_and_pos()
+        
+        if not self._thread_active:
+            return
+        #
+        self._calculate_event_times()
+        
+        if not self._thread_active:
+            return
+        
         # Loop over all rows to check last rec state and last time in list.
         max_event_time = None
         for event_dict in self._scheduler_event_list:
@@ -225,6 +233,9 @@ class WurbScheduler(object):
         if last_used_index >= (len(self._scheduler_event_list) - 1):
             last_used_index = -1
             wait_for_next_day = True
+        
+        if not self._thread_active:
+            return
         
         # Send event when state changed.
         rec_on_old = self._rec_on        
@@ -286,7 +297,7 @@ class WurbScheduler(object):
                 self._callback_function('scheduler_restart')
                 
             # Sleep, but exit earlier if externally termined.
-            for i in range(10):
+            for _i in range(10):
                 if not self._thread_active:
                     return # Terminate thread.
                 time.sleep(1.0)
