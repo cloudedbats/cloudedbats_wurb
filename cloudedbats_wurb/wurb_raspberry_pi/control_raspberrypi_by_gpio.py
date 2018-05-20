@@ -20,7 +20,7 @@ class ControlRaspberryPiByGpio(object):
         - Add this to rc.local. Will make it start at RPi startup.
              TODO:...
         - Add a three position switch. Connect ground (GPIO pin 39) to the middle pin and GPIO 
-          pin 40 (aka. GPIO 21) and GPIO pin 36 (aka. GPIO 36) to the two other pins.
+          pin 40 (aka. GPIO 21) and GPIO pin 36 (aka. GPIO 16) to the two other pins.
         - Add a label for the switch: "RPi: off - on - low".
     """
 
