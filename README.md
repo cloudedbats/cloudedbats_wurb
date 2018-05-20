@@ -44,7 +44,7 @@ Image: CloudedBats.org / [CC-BY](https://creativecommons.org/licenses/by/3.0/)
 
 ### Latest stable release
 
-Release: https://github.com/cloudedbats/cloudedbats_wurb/releases/tag/WURB_2018.05.0
+Release: https://github.com/cloudedbats/cloudedbats_wurb/releases/latest
 
 Issues (for the whole CloudedBats project): https://github.com/cloudedbats/cloudedbats/issues 
 
