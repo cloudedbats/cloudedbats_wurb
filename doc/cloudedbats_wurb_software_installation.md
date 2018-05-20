@@ -43,7 +43,7 @@ Note: The ssh alternative by using Ethernet is not possible on the Raspberry Py 
  
 Change these parts:
  
-- Hostname: wurb1 (for example)
+- Network options - Hostname: wurb1 (for example)
 - Localisation Options - Change Timezone: Europe - Stockholm  (for example)
 - Advanced Options - Expand Filesystem
  
@@ -54,13 +54,13 @@ Change these parts:
 Add these lines. **Note**: Must be 'tab', not spaces, for indentation.
  
     network={
-    	ssid="<open-network-name>"
+    	ssid="cloudedbats-wifi"
     	key_mgmt=NONE
     	priority=70
     }
     network={
-    	ssid="<closed-network-name>"
-    	psk="<closed-network-password>"
+    	ssid="cloudedbats"
+    	psk="plecotusauritus"
     	priority=80
     }
  

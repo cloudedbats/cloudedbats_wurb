@@ -25,7 +25,7 @@ This instruction can be used if you have an already prepared WURB with default s
 
 5. Recordings will start 2 seconds before a sound is detected and continue 2 sec after. If the recording will last for more than 20 seconds, a new file will be started. Each filename will contain start time and position in latitude/longitude. Default settings for sound detection are any sound above 15 kHz and above -50 dBFS. 
 
-6. When finished, then shut down the WURB. This can be done either by turn the switch to "RPi-off" or press the left and right button simultaneous for 5 seconds if a computer mouse is used. Wait until the Raspberry Pi has finished, and then disconnect power by removing the Micro-USB cable, or by pressing the PowerBank on/off button. 
+6. When finished, then shut down the WURB. This can be done either by turning the switch to "RPi-off" or press the left and right button simultaneous for 5 seconds if a computer mouse is used. Wait until the Raspberry Pi has finished, and then disconnect power by removing the Micro-USB cable, or by pressing the PowerBank on/off button. 
 
 7. Move the USB memory to a computer and check the files.
 
@@ -113,16 +113,16 @@ Used connection are:
 
 A recommended setup is to use two three-way switches of the type on-off-on. Connect the middle connection on the switch to ground and the other as described above. Recommended labels for the two switches: "RPi: off - on - wifi-off" and "Rec: off - auto - on".
 
-If nothing is connected, then the WURB will start up and run in "Auto mode". This will be enough in many situations, but you still need to implement the "Raspberry Pi shutdown" functionality. Simple solutions are a press button, or similar, that connects pin #40 with #39 for some seconds. 
+If nothing is connected, then the WURB will start up and run in "Auto mode". This will be enough in many situations, but you still need to implement the "Raspberry Pi shutdown" functionality. A simple solutions is a press button, or similar, that connects pin #40 with #39 for some seconds. 
 
 ## WURB control via a computer mouse
 
 If you don't like soldering, an alternative is to use an USB connected computer mouse.
 Available commands are:
 
-- Press left button for 2 sec: Recording on.  
-- Press right button for 2 sec: Recording off.  
-- Press middle button (the scroll wheel) for 2 sec: Auto mode, controlled by scheduler.  
+- Press left button for 2 sec: Recording on. 
+- Press right button for 2 sec: Recording off. 
+- Press middle button (the scroll wheel) for 2 sec: Auto mode, controlled by scheduler. 
 - Press left and right button simultaneously for 5 sec: Raspberry Pi shutdown.
 
 ## CloudedBats - links
