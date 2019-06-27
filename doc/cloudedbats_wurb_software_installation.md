@@ -1,20 +1,18 @@
-
-
-# Software installation - WURB version 2017-sept.
+# Software installation - WURB 
  
-This guide describes how to install the CloudedBats-WURB, Wireless Ultrasonic Recorder for Bats, on a Raspberry Pi 3 B or Raspberry Pi Zero W. The user of this guide should be familiar with the Linux operating system and the Raspberry Pi computer. If not, please contact me to get a link to an already prepared disk image file for download. 
+This guide describes how to install the CloudedBats-WURB, Wireless Ultrasonic Recorder for Bats, on a Raspberry Pi. The user of this guide should be familiar with the Linux operating system and the Raspberry Pi computer. If not, please contact me to get a link to an already prepared disk image file for download. 
 
-The installation process is exactly the same for Raspberry Pi 3 B and Raspberry Pi Zero W. It is possible to move the Micro-SD card between the two models after the installation.
+The installation process is exactly the same for Raspberry Pi 4 B, Raspberry Pi 3 B and Raspberry Pi Zero W. It is possible to move the Micro-SD card between the models after the installation.
  
-### Download Raspbian Stretch Light.
+### Download Raspbian Buster Light.
 
-Raspbian Stretch Light is based on Debian version 9. Raspbian is very similar to Ubuntu when running in terminal mode.
+Raspbian Buster Light is based on Debian version 10. Raspbian Buster is needed if you want to use the new Raspberry Pi 4 (not tested by me yet). The commands used when running Raspbian in terminal mode are very similar to Ubuntu commands.
  
 Download page:
  
     https://www.raspberrypi.org/downloads/raspbian/
  
-Follow the instructions and install the Raspbian Stretch Light image file (.img) on a Micro-SD card.
+Follow the instructions and install the Raspbian Buster Light image file (.img) on a Micro-SD card. The graphical SD card writing tool Etcher (https://www.balena.io/etcher/) is recommended. If you want to format the SD card back later for normal use, then the SD Memory Card Formatter (https://www.sdcard.org/downloads/formatter/index.html) is recommended because other formatters may result in lower performance.
  
 ### SSH - activate
  
@@ -73,16 +71,16 @@ Add these lines. **Note**: Must be 'tab', not spaces, for indentation.
     ssh pi@wurb1.local
     pw: cloudedbats
  
-### Upgrade Raspbian Stretch Light
+### Upgrade Raspbian Buster Light
  
-    sudo apt-get update
-    sudo apt-get upgrade
+    sudo apt update
+    sudo apt upgrade
  
 ### Install software packages. 
  
-    sudo apt-get install git portaudio19-dev gpsd gpsd-clients usbmount
+    sudo apt install git portaudio19-dev gpsd gpsd-clients usbmount
  
-    sudo apt-get install python3 python3-pip python3-numpy python3-scipy python3-all-dev python3-rpi.gpio
+    sudo apt install python3 python3-pip python3-numpy python3-scipy python3-all-dev python3-rpi.gpio
  
     sudo pip3 install pyaudio gps3 python-dateutil pyusb pytz
  
@@ -99,7 +97,7 @@ Set these values:
     GPSD_OPTIONS="-n"
     GPSD_SOCKET="/var/run/gpsd.sock"
 
-**Note**: Some USB connected GPS units uses another communication protocol. When using "GPS/Glonass Ublox-7 (Diymall Vk-172 vk 172)" I had to change DEVICE to "/dev/ttyACM0".
+**Note**: Some USB connected GPS units uses another communication protocol. When using "GPS/Glonass Ublox-7 (Diymall Vk-172 vk 172)" I had to change DEVICES to "/dev/ttyACM0".
 
 ### Config usbmount for automatic handling of USB memory/disk.
  
@@ -110,19 +108,24 @@ Modify to these values:
     MOUNTOPTIONS="noexec,nodev,noatime,nodiratime"
     FS_MOUNTOPTIONS="-fstype=vfat,uid=pi,gid=pi,dmask=0000,fmask=0111"
 
-Debian Stretch differ from earlier versions and this modification is needed
+Debian Buster differ from earlier versions and this modification is needed
 
     sudo nano /lib/systemd/system/systemd-udevd.service
 
-Change "MountFlags=slave" to "MountFlags=shared":
+Disable all rows after "TasksMax=infinity" by writing the comment marker # 
+at the beginning of each row.
 
-    MountFlags=shared
+Note: Versions before Raspbian Stretch worked directly. When using Raspbian Stretch you
+had to change "MountFlags=slave" to "MountFlags=shared" in the file above.
+That does not work in Buster, but it's works when disabling the rows described above. 
+Maybe not the best solution, but it works. 
+More info here: https://github.com/systemd/systemd/issues/11982 
 
 ### Time sync from the Internet 
 
-Before Raspbian Stretch this was installed by default. You need to set up it yourself if you need it.  
+Before Raspbian Stretch this was installed by default. You must set up it yourself if you need it.  
 
-    sudo apt-get install ntp
+    sudo apt install ntp
     sudo systemctl enable ntp
     sudo timedatectl set-ntp 1
 
