@@ -2,11 +2,13 @@
  
 This guide describes how to install the CloudedBats-WURB, Wireless Ultrasonic Recorder for Bats, on a Raspberry Pi. The user of this guide should be familiar with the Linux operating system and the Raspberry Pi computer. If not, please contact me to get a link to an already prepared disk image file for download. 
 
-The installation process is exactly the same for Raspberry Pi 4 B, Raspberry Pi 3 B and Raspberry Pi Zero W. It is possible to move the Micro-SD card between the models after the installation.
- 
+The installation process is the same for Raspberry Pi 4 B (not tested), Raspberry Pi 3 B and Raspberry Pi Zero W. It is possible to move the Micro-SD card between the models after the installation.
+
+Some comments on the new Raspbian Buster release: Raspbian Buster is base on a pre-release of the new Debian Buster release. There was a problem with the automatic detection of USB memory sticks. I did manage to set it up in "the old style" and will try the "new style" when more info is available for how to do it. I used the "2019-06-20-raspbian-buster-lite" version for this guide. 
+
 ### Download Raspbian Buster Light.
 
-Raspbian Buster Light is based on Debian version 10. Raspbian Buster is needed if you want to use the new Raspberry Pi 4 (not tested by me yet). The commands used when running Raspbian in terminal mode are very similar to Ubuntu commands.
+Raspbian Buster Light is based on Debian version 10. Raspbian Buster is required if you want to use the new Raspberry Pi 4. The commands used when running Raspbian in terminal mode are very similar to Ubuntu commands since both are based on Debian operating system.
  
 Download page:
  
@@ -18,16 +20,39 @@ Follow the instructions and install the Raspbian Buster Light image file (.img) 
  
 It is possible to connect a monitor/TV via HDMI and keyboard/mouse via USB to the Raspberry Pi and perform the installation. Personally I prefer to use ssh from a terminal window on another computer in the same local network, and this guide describes that alternative.
  
-For security reasons ssh is disabled by default. The easiest way to enable it is to connect the Micro-SD card to a computer and create an empty file named 'ssh'. More info here: https://www.raspberrypi.org/documentation/remote-access/ssh/
+For security reasons ssh is disabled by default. The easiest way to enable it is to connect the Micro-SD card to a computer and create an empty file named 'ssh'. The Micro-SD card will show up as a volume called "boot". A more detailed description can be found here: https://www.raspberrypi.org/documentation/remote-access/ssh/
 
-Move the Micro-SD card to the Raspberry Pi and start it. Connect an Ethernet cable to connect the Raspberry Pi to your local network. 
+### WiFi setup
 
-Start a terminal window on a computer in the local network. ('raspberrypi.local' works on Mac, I don't know if it is working on Windows.)   
+In the same way as for the SSH activation it is possible to add a "wpa_supplicant.conf" file to the SD card before you move it to the Raspberry Pi. It will then automatically be moved to the right position at the first Raspberry Pi startup.
+
+Create a file with the name "wpa_supplicant.conf" containing a similar content that I use, but for your network. Then move that file to the SD card "boot" volume. The content for my setup:
+
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    update_config=1
+    country=SE
+    
+    network={
+        ssid="cloudedbats"
+        psk="plecotusauritus"
+    }
+
+**Note**: Must be 'tab', not spaces, for indentation before "ssid" and "psk". This may be a problem if you copy and paste it from a web page.
+
+Alternative 1: If you want to change, or add, it later then just type the command when connected to the Raspberry Pi:
+
+    sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+    
+Alternative 2: Another aternative to add WiFi networks is to run "sudo raspi-config" and let that tool do it. More info below.
+
+### Startup the Raspberry Pi
+
+Move the Micro-SD card to the Raspberry Pi and start it. You can either connect an Ethernet cable or use WiFi to connect the Raspberry Pi to your local network. Alternatively connect a monitor/TV via HDMI and keyboard/mouse directly to the Raspberry Pi.
+
+Start a terminal window on a computer in the local network. ('raspberrypi.local' works on Mac, I don't know if it is working on Windows. If you are using Windows this page may help: https://desertbot.io/blog/headless-raspberry-pi-3-bplus-ssh-wifi-setup)   
  
     ssh pi@raspberrypi.local
-    (password: raspberry)
-
-Note: The ssh alternative by using Ethernet is not possible on the Raspberry Py Zero because there is no Ethernet connection. Another option for this is to us an "USB to TTL Serial Cable / Console Cable for Raspberry Pi" . 
+    # Then enter password: raspberry
 
 ### Change password.
  
@@ -42,26 +67,10 @@ Note: The ssh alternative by using Ethernet is not possible on the Raspberry Py 
 Change these parts:
  
 - Network options - Hostname: wurb1 (for example)
+- Network options - Wi-Fi (to add more WiFi networks)
 - Localisation Options - Change Timezone: Europe - Stockholm  (for example)
 - Advanced Options - Expand Filesystem
- 
-### Set up WiFi (optional)
- 
-    sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
- 
-Add these lines. **Note**: Must be 'tab', not spaces, for indentation.
- 
-    network={
-    	ssid="cloudedbats-wifi"
-    	key_mgmt=NONE
-    	priority=70
-    }
-    network={
-    	ssid="cloudedbats"
-    	psk="plecotusauritus"
-    	priority=80
-    }
- 
+
 ### Reboot and login again with the new host name
  
     sudo reboot
@@ -151,7 +160,7 @@ Add this line to the file:
     
     git clone https://github.com/cloudedbats/cloudedbats_wurb.git .
 
-Or to get the latests changes or a specific release (check alternatives in branches and releases):
+Or to get the latest changes or a specific release (check alternatives in branches and releases):
 
     git clone -b stable https://github.com/cloudedbats/cloudedbats_wurb.git .
     git clone -b 2017-sept https://github.com/cloudedbats/cloudedbats_wurb.git .
@@ -197,4 +206,10 @@ Add this before "exit 0":
  
     cat /home/pi/cloudedbats/cloudedbats_wurb/wurb_log_files/wurb_log.txt
     cat /home/pi/cloudedbats/cloudedbats_wurb/wurb_log_files/raspberry_pi_gpio_control_log.txt
- 
+
+### USB memory
+
+I you want to check the USB memory stick content during a recording session it is possible to do that over SSH. Another useful alternative is to use FileZilla, or some other similar software, to download wave files during an ongoing recording session. They are located in this directory when running the detector with the default settings:
+
+    ls /media/usb0/wurb1_rec
+
