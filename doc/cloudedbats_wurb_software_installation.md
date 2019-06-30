@@ -231,7 +231,7 @@ When this installation is done on one SD card it is possible to clone it. The pr
 * Use Etcher to write the image to a new SD card. I use "TOSHIBA EXCERIA PRO 16 GB, UHS Speed Class 3". Slower cards does also work, but takes much longer due to the lower writing speed.
 * Move the SD card to a Raspberry Pi and start it. Connect to it ("ssh pi@wurb1.local") and start the config tool ("sudo raspi-config") and give it a new name, for example "wurb2". Restart and connect with the new name ("ssh pi@wurb2.local").
 
-Now you can set up a cluser of detectors and use WiFi to check their status over ssh and collect recorded files by using FileZilla.
+Now you can set up a cluster of detectors and use WiFi to check their status over ssh and collect recorded files by using FileZilla.
 
 Link to "How to Clone Raspberry Pi SD Card on Windows, Linux and macOS": https://beebom.com/how-clone-raspberry-pi-sd-card-windows-linux-macos/ 
 
