@@ -229,7 +229,7 @@ When this installation is done on one SD card it is possible to clone it. The pr
 * Compress the image file if you want to share it over internet. If the SD card is 16 GB in size, then the image file will be 16 GB in size. When zipped it will be about 1 GB.
 * Decompress (unzip) the file if it was compressed.
 * Use Etcher to write the image to a new SD card. I use "TOSHIBA EXCERIA PRO 16 GB, UHS Speed Class 3". Slower cards does also work, but takes much longer due to the lower writing speed.
-* Move the SD card to a Raspberry Pi and start it. Connect to is ("ssh pi@wurb1.local") and start the config tool ("sudo raspi-config") and give it a new name, for example "wurb2". Restart and connect with the new name ("ssh pi@wurb1.local").
+* Move the SD card to a Raspberry Pi and start it. Connect to it ("ssh pi@wurb1.local") and start the config tool ("sudo raspi-config") and give it a new name, for example "wurb2". Restart and connect with the new name ("ssh pi@wurb2.local").
 
 Now you can set up a cluser of detectors and use WiFi to check their status over ssh and collect recorded files by using FileZilla.
 
