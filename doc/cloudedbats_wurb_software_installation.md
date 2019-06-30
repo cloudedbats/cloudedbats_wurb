@@ -14,7 +14,7 @@ Download page:
  
     https://www.raspberrypi.org/downloads/raspbian/
  
-Follow the instructions and install the Raspbian Buster Light image file (.img) on a Micro-SD card. The graphical SD card writing tool Etcher (https://www.balena.io/etcher/) is recommended. If you want to format the SD card back later for normal use, then the SD Memory Card Formatter (https://www.sdcard.org/downloads/formatter/index.html) is recommended because other formatters may result in lower performance.
+Follow the instructions and install the Raspbian Buster Light image file (.img) on a Micro-SD card. The graphical SD card writing tool Etcher (https://www.balena.io/etcher/) is recommended. If you want to format the SD card back later for normal use, then the SD Memory Card Formatter (https://www.sdcard.org/downloads/formatter/index.html) is recommended because other formatters may result in lower read/write performance.
  
 ### SSH - activate
  
@@ -39,15 +39,15 @@ Create a file with the name "wpa_supplicant.conf" containing a similar content t
 
 **Note**: Must be 'tab', not spaces, for indentation before "ssid" and "psk". This may be a problem if you copy and paste it from a web page.
 
-Alternative 1: If you want to change, or add, it later then just type the command when connected to the Raspberry Pi:
+Alternative 1: If you want to change, or add, it later then just type this command when connected to the Raspberry Pi:
 
     sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
     
-Alternative 2: Another aternative to add WiFi networks is to run "sudo raspi-config" and let that tool do it. More info below.
+Alternative 2: Another alternative to add WiFi networks is to run "sudo raspi-config" and let that tool do it. More info below.
 
 ### Startup the Raspberry Pi
 
-Move the Micro-SD card to the Raspberry Pi and start it. You can either connect an Ethernet cable or use WiFi to connect the Raspberry Pi to your local network. Alternatively connect a monitor/TV via HDMI and keyboard/mouse directly to the Raspberry Pi.
+Move the Micro-SD card to the Raspberry Pi and start it. You can either connect an Ethernet cable or use WiFi to connect the Raspberry Pi to your local network. (Alternatively connect a monitor/TV via HDMI and keyboard/mouse directly to the Raspberry Pi. Since this is a "headless" version of Raspbian there will be no graphical user interface on the monitor/TV, only a command line interface.)
 
 Start a terminal window on a computer in the local network. ('raspberrypi.local' works on Mac, I don't know if it is working on Windows. If you are using Windows this page may help: https://desertbot.io/blog/headless-raspberry-pi-3-bplus-ssh-wifi-setup)   
  
@@ -58,7 +58,7 @@ Start a terminal window on a computer in the local network. ('raspberrypi.local'
  
     passwd     
  
-(For example, change password to 'cloudedbats'.)
+For example, change password to 'cloudedbats'.
  
 ### Basic Raspberry Pi configuration
  
@@ -126,7 +126,7 @@ at the beginning of each row.
 
 Note: Versions before Raspbian Stretch worked directly. When using Raspbian Stretch you
 had to change "MountFlags=slave" to "MountFlags=shared" in the file above.
-That does not work in Buster, but it's works when disabling the rows described above. 
+That does not work in Buster, but it works when disabling the rows described above. 
 Maybe not the best solution, but it works. 
 More info here: https://github.com/systemd/systemd/issues/11982 
 
@@ -165,8 +165,9 @@ Or to get the latest changes or a specific release (check alternatives in branch
     git clone -b stable https://github.com/cloudedbats/cloudedbats_wurb.git .
     git clone -b 2017-sept https://github.com/cloudedbats/cloudedbats_wurb.git .
     
- 
-### Automatic start for  the WURB software at startup
+To update the CloudedBats-WURB software only, just run a "git pull" command.
+
+### Automatic start for the WURB software at startup
  
     sudo nano /etc/rc.local
  
@@ -209,7 +210,31 @@ Add this before "exit 0":
 
 ### USB memory
 
-I you want to check the USB memory stick content during a recording session it is possible to do that over SSH. Another useful alternative is to use FileZilla, or some other similar software, to download wave files during an ongoing recording session. They are located in this directory when running the detector with the default settings:
+I you want to check the USB memory stick content during a recording session it is possible to do that over SSH. Another useful alternative is to use FileZilla, or some other similar software, to download wave files during an ongoing recording session. They are located in the "/media/usb0/wurb1_rec" directory when running the detector with the default settings.
 
+    # Show log file.
+    cat /media/usb0/cloudedbats_wurb/log_files/wurb_log.txt
+    
+    # Show currently used settings.
+    cat /media/usb0/cloudedbats_wurb/settings/user_settings_LAST_USED.txt 
+    
+    # List recordings. 
     ls /media/usb0/wurb1_rec
+
+### Running multiple detectors
+
+When this installation is done on one SD card it is possible to clone it. The process is as follows:
+
+* Create a new image file based on the content of the SD card (link to instruction below).
+* Compress the image file if you want to share it over internet. If the SD card is 16 GB in size, then the image file will be 16 GB in size. When zipped it will be about 1 GB.
+* Decompress (unzip) the file if it was compressed.
+* Use Etcher to write the image to a new SD card. I use "TOSHIBA EXCERIA PRO 16 GB, UHS Speed Class 3". Slower cards does also work, but takes much longer due to the lower writing speed.
+* Move the SD card to a Raspberry Pi and start it. Connect to is ("ssh pi@wurb1.local") and start the config tool ("sudo raspi-config") and give it a new name, for example "wurb2". Restart and connect with the new name ("ssh pi@wurb1.local").
+
+Now you can set up a cluser of detectors and use WiFi to check their status over ssh and collect recorded files by using FileZilla.
+
+Link to "How to Clone Raspberry Pi SD Card on Windows, Linux and macOS": https://beebom.com/how-clone-raspberry-pi-sd-card-windows-linux-macos/ 
+
+
+
 
