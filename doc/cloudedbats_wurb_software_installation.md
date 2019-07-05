@@ -6,15 +6,15 @@ The installation process is the same for Raspberry Pi 4 B (not tested), Raspberr
 
 Some comments on the new Raspbian Buster release: Raspbian Buster is base on a pre-release of the new Debian Buster release. There was a problem with the automatic detection of USB memory sticks. I did manage to set it up in "the old style" and will try the "new style" when more info is available for how to do it. I used the "2019-06-20-raspbian-buster-lite" version for this guide. 
 
-### Download Raspbian Buster Light.
+### Download Raspbian Buster Lite.
 
-Raspbian Buster Light is based on Debian version 10. Raspbian Buster is required if you want to use the new Raspberry Pi 4. The commands used when running Raspbian in terminal mode are very similar to Ubuntu commands since both are based on Debian operating system.
+Raspbian Buster Lite is based on Debian version 10. Raspbian Buster is required if you want to use the new Raspberry Pi 4. The commands used when running Raspbian in terminal mode are very similar to Ubuntu commands since both are based on Debian operating system.
  
 Download page:
  
     https://www.raspberrypi.org/downloads/raspbian/
  
-Follow the instructions and install the Raspbian Buster Light image file (.img) on a Micro-SD card. The graphical SD card writing tool Etcher (https://www.balena.io/etcher/) is recommended. If you want to format the SD card back later for normal use, then the SD Memory Card Formatter (https://www.sdcard.org/downloads/formatter/index.html) is recommended because other formatters may result in lower read/write performance.
+Follow the instructions and install the Raspbian Buster Lite image file (.img) on a Micro-SD card. The graphical SD card writing tool Etcher (https://www.balena.io/etcher/) is recommended. If you want to format the SD card back later for normal use, then the SD Memory Card Formatter (https://www.sdcard.org/downloads/formatter/index.html) is recommended because other formatters may result in lower read/write performance.
  
 ### SSH - activate
  
@@ -80,7 +80,7 @@ Change these parts:
     ssh pi@wurb1.local
     pw: cloudedbats
  
-### Upgrade Raspbian Buster Light
+### Upgrade Raspbian Buster Lite
  
     sudo apt update
     sudo apt upgrade
