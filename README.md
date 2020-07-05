@@ -1,5 +1,10 @@
 # WURB - Wireless Ultrasonic Recorder for Bats
 
+**Note: This version of the WURB detector has been replaced by a completely rewritten new version.
+The new version can be found here: https://github.com/cloudedbats/cloudedbats_wurb_2020**
+
+**This version will not be removed since it is a stable version and maybe still have users.** 
+
 This is a part of CloudedBats: http://cloudedbats.org
 and contains the source code repository for the CloudedBats recording unit.
 
